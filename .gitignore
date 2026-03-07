@@ -84,6 +84,8 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+!dist/tenuuki-spin-viewer.js
+!dist/tenuuki-spin-viewer.css
 .output
 
 # Gatsby files
