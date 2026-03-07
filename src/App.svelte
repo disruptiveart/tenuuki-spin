@@ -8,7 +8,12 @@
 <main>
   <h1>Tenuuki Spin</h1>
   <div class="card tenuuki-spin-viewer-card">
-    <SpinViewer options={{ images, initialSpin: true, spinOffset: 180, initialFrame: 10 }}/>
+    <SpinViewer options={{ 
+      images, 
+      initialSpin: true, 
+      spinOffset: 180, 
+      initialFrame: 10
+       }}/>
   </div>
 </main>
 
@@ -22,5 +27,7 @@
 .tenuuki-spin-viewer-card {
   width: 300px;
   height: 300px;
+  background: url('./bamboo.webp') no-repeat center center;
+  background-size: cover;
 }
 </style>

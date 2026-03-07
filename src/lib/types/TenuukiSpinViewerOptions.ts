@@ -1,11 +1,11 @@
 export interface TenuukiSpinViewerOptions {
   images: ReadonlyArray<string>;
 
+  direction?: 1 | -1; // default: 1
   initialSpin?: boolean;
   spinOffset?: number; // degrees to offset the initial spin by. Defaults to 0.
   
-  // TODO:
-  // draggable?: boolean;
+  draggable?: boolean;
   // autoplay?: boolean;
   // inverse?: boolean;
 

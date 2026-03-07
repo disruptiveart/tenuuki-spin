@@ -1,12 +1,16 @@
 .tenuuki-spin-viewer {
+  position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 
   img {
     width: 100%;
     height: 100%;
-    -webkit-user-drag: none; /* Safari / Chrome */
-    user-drag: none;          /* Other browsers */
-    -webkit-touch-callout: none; /* Prevent iOS callout menu */
+    object-fit: contain;
+    pointer-events: auto;       /* allow pointer events for dragging */
+    -webkit-user-drag: none;    /* disable native drag */
+    user-drag: none;
+    -webkit-touch-callout: none;
   }
 }
