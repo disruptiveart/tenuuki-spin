@@ -2,13 +2,13 @@
   import SpinViewer from './lib/components/TenuukiSpinViewer.svelte';
 
   const imageCount = 60;
-  const images = Array.from({ length: imageCount }, (_, i) => `/spinner_frames/box-${String(i+1).padStart(4, '0')}.png`);
+  const images = Array.from({ length: imageCount }, (_, i) => `/spinner_frames/box-${String(i+1).padStart(4, '0')}.webp`);
 </script>
 
 <main>
   <h1>Tenuuki Spin</h1>
   <div class="card">
-    <SpinViewer options={{ images }}/>
+    <SpinViewer options={{ images, initialSpin: true, spinOffset: 180, initialFrame: 10 }}/>
   </div>
 </main>
 

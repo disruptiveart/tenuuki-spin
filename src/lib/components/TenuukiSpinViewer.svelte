@@ -7,25 +7,156 @@ import type { TenuukiSpinViewerOptions } from '$lib/types/TenuukiSpinViewerOptio
 
 export let options: TenuukiSpinViewerOptions
 let currentFrame = 0
-let frameInterval: number = 100
+let frameInterval: number = 60
 let imgElement: HTMLImageElement
+let spinInterval: ReturnType<typeof setInterval> | undefined
+const preloadedImages: HTMLImageElement[] = []
+const loadedFlags: boolean[] = []
+let loadedCount = 0
+let spinStarted = false
 
-$: currentSrc = options?.images?.[currentFrame] || ''
+const normalizeFrameIndex = (idx: number, total: number) => {
+  if (total <= 0) return 0
+  return ((idx % total) + total) % total
+}
+
+const getInitialFrameIndex = () => {
+  const total = options?.images?.length ?? 0
+  if (total <= 0) return 0
+
+  const initial = options?.initialFrame ?? 1
+  return Math.min(total - 1, Math.max(0, initial - 1))
+}
+
+const getOffsetFramesFromSpinOffset = () => {
+  const total = options?.images?.length ?? 0
+  if (total <= 1) return 0
+
+  const rawDegrees = options?.spinOffset ?? 0
+  const normalizedDegrees = ((rawDegrees % 360) + 360) % 360
+  return Math.round((normalizedDegrees / 360) * total)
+}
+
+const getStartFrameFromSpinOffset = () => {
+  const total = options?.images?.length ?? 0
+  if (total <= 1) return getInitialFrameIndex()
+
+  const targetFrame = getInitialFrameIndex()
+  const offsetFrames = getOffsetFramesFromSpinOffset()
+
+  // spinOffset is the starting offset FROM initialFrame
+  // Subtract so we spin forward back TO initialFrame
+  return normalizeFrameIndex(targetFrame - offsetFrames, total)
+}
+
+const isLoaded = (i: number) => !!loadedFlags[i]
+
+const areFramesLoadedForForwardPath = (startFrame: number, targetFrame: number) => {
+  const total = options?.images?.length ?? 0
+  if (total === 0) return false
+
+  // Forward path without wrap: start -> ... -> target
+  if (startFrame <= targetFrame) {
+    for (let i = startFrame; i <= targetFrame; i++) {
+      if (!isLoaded(i)) return false
+    }
+    return true
+  }
+
+  // Forward path with wrap: start -> ... -> last -> 0 -> ... -> target
+  for (let i = startFrame; i < total; i++) {
+    if (!isLoaded(i)) return false
+  }
+  for (let i = 0; i <= targetFrame; i++) {
+    if (!isLoaded(i)) return false
+  }
+  return true
+}
+
+const beginInitialSpinForwardToInitialFrame = () => {
+  if (!options?.initialSpin) return
+  if (spinInterval) clearInterval(spinInterval)
+
+  const total = options.images.length
+  const startFrame = getStartFrameFromSpinOffset()
+  const targetFrame = getInitialFrameIndex()
+
+  currentFrame = startFrame
+
+  if (startFrame === targetFrame) return
+
+  spinInterval = setInterval(() => {
+    if (currentFrame === targetFrame) {
+      if (spinInterval) clearInterval(spinInterval)
+      spinInterval = undefined
+      return
+    }
+
+    currentFrame = (currentFrame + 1) % total
+  }, frameInterval)
+}
+
+const maybeBeginSpin = () => {
+  if (spinStarted || !options?.initialSpin) return
+
+  const startFrame = getStartFrameFromSpinOffset()
+  const targetFrame = getInitialFrameIndex()
+
+  if (areFramesLoadedForForwardPath(startFrame, targetFrame)) {
+    spinStarted = true
+    beginInitialSpinForwardToInitialFrame()
+  }
+}
+
+const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
+  let index = 0
+
+  const markLoaded = (i: number) => {
+    if (!loadedFlags[i]) {
+      loadedFlags[i] = true
+      loadedCount += 1
+      maybeBeginSpin()
+    }
+  }
+
+  const loadChunk = () => {
+    for (let i = index; i < index + chunkSize && i < options.images.length; i++) {
+      const img = new Image()
+      loadedFlags[i] = false
+
+      img.onload = () => markLoaded(i)
+      img.onerror = () => {
+        console.warn(`[TenuukiSpinViewer]: Failed to load image at index ${i}`)
+        markLoaded(i)
+      }
+
+      img.src = options.images[i]
+      preloadedImages[i] = img
+    }
+
+    index += chunkSize
+    if (index < options.images.length) setTimeout(loadChunk, delay)
+  }
+
+  loadChunk()
+}
 
 onMount(() => {
-  console.log('TenuukiSpinViewer mounted with options:', options)
-
   if (!options || !options.images || options.images.length === 0) {
     console.warn('TenuukiSpinViewer: No images provided in options')
     return
   }
 
-  const interval = setInterval(() => {
-    currentFrame = (currentFrame + 1) % options.images.length
-  }, frameInterval)
+  currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : getInitialFrameIndex()
 
-  return () => clearInterval(interval)
+  preloadImagesProgressive()
+
+  return () => {
+    if (spinInterval) clearInterval(spinInterval)
+  }
 })
+
+$: currentSrc = options?.images?.[currentFrame] || ''
 </script>
 
 <div class="tenuuki-spin-viewer">
