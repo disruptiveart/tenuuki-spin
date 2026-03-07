@@ -188,7 +188,7 @@ onMount(() => {
   if (!containerElement) return
   const element = containerElement as HTMLElement;
   const host = element.parentElement;
-  
+
   if (!host) {
     return {};
   }
@@ -207,6 +207,7 @@ onMount(() => {
   options.draggable = host.getAttribute('data-draggable') !== 'false'
   options.initialSpin = host.getAttribute('data-initial-spin') !== 'false'
   options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
+  options.initialFrame = parseInt(host.getAttribute('data-initial-frame') || '1', 10)
   options.frameInterval = 60
 
   currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : 0

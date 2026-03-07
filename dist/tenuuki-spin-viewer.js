@@ -2063,7 +2063,7 @@ function Lr(e, t) {
 		let t = e.getAttribute("data-image-base-url");
 		console.log("image base: ", t);
 		let n = parseInt(e.getAttribute("data-image-count") || "0", 10), o = parseInt(e.getAttribute("data-image-number-padding") || "4", 10);
-		return t && n > 0 && r(r().images = S(t, n, o), !0), r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().frameInterval = 60, !0), z(i, r().initialSpin ? C() : 0), a = $(i), te(), () => {
+		return t && n > 0 && r(r().images = S(t, n, o), !0), r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().initialFrame = parseInt(e.getAttribute("data-initial-frame") || "1", 10), !0), r(r().frameInterval = 60, !0), z(i, r().initialSpin ? C() : 0), a = $(i), te(), () => {
 			c && clearInterval(c), ie();
 		};
 	}), tn(() => (In(r()), $(i)), () => {
