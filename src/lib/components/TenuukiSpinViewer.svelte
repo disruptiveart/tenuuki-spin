@@ -1,17 +1,17 @@
-<svelte:options customElement="tenuuki-spin-viewer" />
+<svelte:options customElement={{ tag: "tenuuki-spin-viewer", shadow: 'none' }} />
 
 <script lang="ts">
 import { onMount } from 'svelte'
 import '../styles/spin-viewer.scss'
 import type { TenuukiSpinViewerOptions } from '$lib/types/TenuukiSpinViewerOptions'
 
-export let options: TenuukiSpinViewerOptions
-
 // ----- Spinner state -----
+export let options: TenuukiSpinViewerOptions = { images: [] } as TenuukiSpinViewerOptions
 let currentFrame = 0
 let currentFrameFloat = 0
 let frameInterval: number = 60
 let imgElement: HTMLImageElement
+let containerElement: HTMLDivElement
 let spinInterval: ReturnType<typeof setInterval> | undefined
 
 // ----- Preload -----
@@ -32,299 +32,207 @@ let momentumId: number | undefined
 const MOMENTUM_FRICTION = 0.92
 const VELOCITY_SAMPLES = 5
 
-// ----- Spin direction -----
-// Keeps your current reversed mapping behavior:
-// option -1 => internal 1, option 1 (or undefined) => internal -1
-const toInternalDirection = (dir?: 1 | -1) => (dir === -1 ? 1 : -1)
-
-const getSpinDirection = () => {
-    return toInternalDirection(options?.direction)
-}
-
-// Separate control for intro spin direction.
-// If not provided, it falls back to regular direction.
-const getInitialSpinDirection = () => {
-    return options?.initialSpinDirection === 1 || options?.initialSpinDirection === -1
-        ? toInternalDirection(options.initialSpinDirection)
-        : getSpinDirection()
-}
-
 // ----- Utilities -----
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
+const getSpinDirection = () => options?.direction === -1 ? 1 : -1
+const getInitialFrameIndex = () => Math.min((options?.initialFrame ?? 1) - 1, options.images.length - 1)
 
-const getInitialFrameIndex = () => {
-    const total = options?.images?.length ?? 0
-    if (total <= 0) return 0
-    const initial = options?.initialFrame ?? 1
-    return Math.min(total - 1, Math.max(0, initial - 1))
-}
+// ----- Image generation -----
+const buildImagesFromTemplate = (template: string, count: number, padding: number) =>
+  Array.from({ length: count }, (_, i) => template.replace('{frame}', String(i + 1).padStart(padding, '0')))
 
-const getOffsetFramesFromSpinOffset = () => {
-    const total = options?.images?.length ?? 0
-    if (total <= 1) return 0
-    const rawDegrees = options?.spinOffset ?? 0
-    const normalizedDegrees = ((rawDegrees % 360) + 360) % 360
-    return Math.round((normalizedDegrees / 360) * total)
-}
-
-const getStartFrameFromSpinOffset = () => {
-    const total = options?.images?.length ?? 0
-    if (total <= 1) return getInitialFrameIndex()
-    const targetFrame = getInitialFrameIndex()
-    const offsetFrames = getOffsetFramesFromSpinOffset()
-    return normalizeFrameIndex(targetFrame - offsetFrames, total)
-}
-
-const isLoaded = (i: number) => !!loadedFlags[i]
-
-// ----- Preload images progressively -----
-const maybeBeginSpin = () => {
-    if (spinStarted || !options?.initialSpin) {
-        return;
-    }
-
-    const total = options.images.length;
-    const startFrame = getStartFrameFromSpinOffset();
-    const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
-    const spinDirection = getInitialSpinDirection()
-
-    let ready = true;
-    for (
-        let i = startFrame;
-        i !== normalizeFrameIndex(targetFrame + spinDirection, total);
-        i = normalizeFrameIndex(i + spinDirection, total)
-    ) {
-        if (!isLoaded(i)) { ready = false; break }
-    }
-
-    if (ready) {
-        spinStarted = true;
-        beginInitialSpinForwardToInitialFrame();
-    }
-}
-
-const beginInitialSpinForwardToInitialFrame = () => {
-    if (!options?.initialSpin) {
-        return;
-    }
-
-    if (spinInterval) {
-        clearInterval(spinInterval);
-        spinInterval = undefined;
-    }
-
-    const total = options.images.length;
-    const startFrame = getStartFrameFromSpinOffset();
-    const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
-    const spinDirection = getInitialSpinDirection()
-
-    currentFrame = startFrame;
-    currentFrameFloat = startFrame;
-
-    if (startFrame === targetFrame) {
-        return;
-    }
-
-    spinInterval = setInterval(() => {
-        currentFrame = normalizeFrameIndex(currentFrame + spinDirection, total);
-        currentFrameFloat = currentFrame;
-
-        if (currentFrame === targetFrame) {
-            clearInterval(spinInterval);
-            spinInterval = undefined;
-        }
-    }, options?.frameInterval ?? frameInterval);
+// ----- Preload -----
+const markLoaded = (i: number) => {
+  if (!loadedFlags[i]) {
+    loadedFlags[i] = true
+    loadedCount++
+    maybeBeginSpin()
+  }
 }
 
 const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
-    let index = 0;
+  let index = 0
 
-    const markLoaded = (i: number) => {
-        if (!loadedFlags[i]) {
-            loadedFlags[i] = true;
-            loadedCount++;
-            maybeBeginSpin();
-        }
+  const loadChunk = () => {
+    for (let i = index; i < index + chunkSize && i < options.images.length; i++) {
+      const img = new Image()
+      loadedFlags[i] = false
+      img.onload = () => markLoaded(i)
+      img.onerror = () => { console.warn(`[TenuukiSpinViewer] Failed to load image ${i}`); markLoaded(i) }
+      img.src = options.images[i]
+      preloadedImages[i] = img
     }
+    index += chunkSize
+    if (index < options.images.length) setTimeout(loadChunk, delay)
+  }
 
-    const loadChunk = () => {
-        for (let i = index; i < index + chunkSize && i < options.images.length; i++) {
-            const img = new Image();
-            loadedFlags[i] = false;
-            img.onload = () => markLoaded(i);
-            img.onerror = () => { console.warn(`[TenuukiSpinViewer] Failed to load image ${i}`); markLoaded(i); }
-            img.src = options.images[i];
-            preloadedImages[i] = img;
-        }
-        index += chunkSize;
-        if (index < options.images.length) setTimeout(loadChunk, delay);
+  loadChunk()
+}
+
+// ----- Initial Spin -----
+const maybeBeginSpin = () => {
+  if (spinStarted || !options.initialSpin) return
+  const total = options.images.length
+  const startFrame = getStartFrameFromSpinOffset()
+  const targetFrame = getInitialFrameIndex()
+  let ready = true
+  for (let i = startFrame; i !== normalizeFrameIndex(targetFrame + getSpinDirection(), total); i = normalizeFrameIndex(i + getSpinDirection(), total)) {
+    if (!loadedFlags[i]) { ready = false; break }
+  }
+  if (ready) { spinStarted = true; beginInitialSpinForwardToInitialFrame() }
+}
+
+const getStartFrameFromSpinOffset = () => {
+  const total = options.images.length
+  const target = getInitialFrameIndex()
+  const offsetFrames = Math.round(((options.spinOffset ?? 0) % 360) / 360 * total)
+  return normalizeFrameIndex(target - offsetFrames, total)
+}
+
+const beginInitialSpinForwardToInitialFrame = () => {
+  if (!options.initialSpin) return
+  if (spinInterval) clearInterval(spinInterval)
+
+  const total = options.images.length
+  const startFrame = getStartFrameFromSpinOffset()
+  const targetFrame = getInitialFrameIndex()
+  const dir = getSpinDirection()
+
+  currentFrame = startFrame
+  currentFrameFloat = startFrame
+
+  spinInterval = setInterval(() => {
+    currentFrame = normalizeFrameIndex(currentFrame + dir, total)
+    currentFrameFloat = currentFrame
+    if (currentFrame === targetFrame) {
+      clearInterval(spinInterval)
+      spinInterval = undefined
     }
-
-    loadChunk()
+  }, options.frameInterval ?? frameInterval)
 }
 
 // ----- Momentum -----
 const stopMomentum = () => {
-    if (momentumId) {
-        cancelAnimationFrame(momentumId);
-    }
-
-    momentumId = undefined;
-    velocity = 0;
+  if (momentumId) cancelAnimationFrame(momentumId)
+  momentumId = undefined
+  velocity = 0
 }
 
 const startMomentum = () => {
-    const total = options?.images?.length ?? 0
-    if (total === 0 || Math.abs(velocity) < 0.1) return
+  const total = options.images.length
+  if (total === 0 || Math.abs(velocity) < 0.1) return
 
-    let lastTime = performance.now()
-
-    const step = (time: number) => {
-        const dt = (time - lastTime) / 1000
-        lastTime = time
-
-        currentFrameFloat = normalizeFrameIndex(currentFrameFloat + velocity * dt, total)
-        currentFrame = Math.floor(currentFrameFloat)
-
-        velocity *= Math.pow(MOMENTUM_FRICTION, dt * 60)
-
-        if (Math.abs(velocity) >= 0.01) {
-            momentumId = requestAnimationFrame(step)
-        } else {
-            momentumId = undefined
-            velocity = 0
-        }
-    }
-
-    momentumId = requestAnimationFrame(step)
+  let lastTime = performance.now()
+  const step = (time: number) => {
+    const dt = (time - lastTime) / 1000
+    lastTime = time
+    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + velocity * dt, total)
+    currentFrame = Math.floor(currentFrameFloat)
+    velocity *= Math.pow(MOMENTUM_FRICTION, dt * 60)
+    if (Math.abs(velocity) >= 0.01) momentumId = requestAnimationFrame(step)
+    else momentumId = undefined
+  }
+  momentumId = requestAnimationFrame(step)
 }
 
-// ----- Pointer events -----
-const getDragAxis = () => options?.axis ?? 'x'
-const getPointerCoord = (e: PointerEvent) => (getDragAxis() === 'x' ? e.clientX : e.clientY)
+// ----- Drag / Pointer -----
+const getPointerCoord = (e: PointerEvent) => options.axis === 'y' ? e.clientY : e.clientX
 
 const handlePointerDown = (e: PointerEvent) => {
-    if (options.draggable === false) {
-        return;
-    }
-    
-    isDragging = true
-    dragStartCoord = getPointerCoord(e)
-    dragStartFrame = currentFrameFloat
-    lastDragPositions = [{ coord: dragStartCoord, time: performance.now() }]
-
-    if (spinInterval) { 
-        clearInterval(spinInterval); 
-        spinInterval = undefined;
-    }
-
-    stopMomentum()
-
-    if (imgElement) {
-        imgElement.setPointerCapture(e.pointerId);
-    }
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+  if (options.draggable === false) return
+  isDragging = true
+  dragStartCoord = getPointerCoord(e)
+  dragStartFrame = currentFrameFloat
+  lastDragPositions = [{ coord: dragStartCoord, time: performance.now() }]
+  if (spinInterval) { clearInterval(spinInterval); spinInterval = undefined }
+  stopMomentum()
+  if (imgElement) imgElement.setPointerCapture(e.pointerId)
+  window.addEventListener('pointermove', handlePointerMove)
+  window.addEventListener('pointerup', handlePointerUp)
+  window.addEventListener('pointercancel', handlePointerUp)
 }
 
 const handlePointerMove = (e: PointerEvent) => {
-    if (options.draggable === false) {
-        return;
-    }
-    
-    if (!isDragging) { 
-        return;
-    }
-
-    const total = options?.images?.length ?? 0;
-    if (total <= 0) {
-        return;
-    }
-
-    const direction = getSpinDirection()
-    const pointerCoord = getPointerCoord(e)
-    const delta = (pointerCoord - dragStartCoord) * direction
-
-    currentFrameFloat = normalizeFrameIndex(dragStartFrame + delta / DRAG_SENSITIVITY, total)
-    currentFrame = Math.floor(currentFrameFloat)
-
-    const now = performance.now()
-    lastDragPositions.push({ coord: pointerCoord, time: now })
-    if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
+  if (!isDragging) return
+  const total = options.images.length
+  const pointerCoord = getPointerCoord(e)
+  const delta = (pointerCoord - dragStartCoord) * getSpinDirection()
+  currentFrameFloat = normalizeFrameIndex(dragStartFrame + delta / DRAG_SENSITIVITY, total)
+  currentFrame = Math.floor(currentFrameFloat)
+  lastDragPositions.push({ coord: pointerCoord, time: performance.now() })
+  if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
 }
 
 const handlePointerUp = (e: PointerEvent) => {
-    if (options.draggable === false) {
-        return;
+  if (!isDragging) return
+  isDragging = false
+  window.removeEventListener('pointermove', handlePointerMove)
+  window.removeEventListener('pointerup', handlePointerUp)
+  window.removeEventListener('pointercancel', handlePointerUp)
+  if (imgElement) imgElement.releasePointerCapture(e.pointerId)
+  if (lastDragPositions.length >= 2) {
+    const first = lastDragPositions[0]
+    const last = lastDragPositions[lastDragPositions.length - 1]
+    const dt = (last.time - first.time) / 1000
+    const dCoord = last.coord - first.coord
+    if (dt > 0) {
+      velocity = (dCoord / DRAG_SENSITIVITY / dt) * getSpinDirection()
+      if (Math.abs(velocity) > 0.1) startMomentum()
     }
-
-    if (!isDragging) {
-        return;
-    }
-
-    isDragging = false
-
-    window.removeEventListener('pointermove', handlePointerMove)
-    window.removeEventListener('pointerup', handlePointerUp)
-    window.removeEventListener('pointercancel', handlePointerUp)
-
-    if (imgElement) imgElement.releasePointerCapture(e.pointerId)
-
-    if (lastDragPositions.length >= 2) {
-        const first = lastDragPositions[0]
-        const last = lastDragPositions[lastDragPositions.length - 1]
-        const dt = (last.time - first.time) / 1000
-        const dCoord = last.coord - first.coord
-
-        if (dt > 0) {
-            const direction = getSpinDirection()
-            velocity = (dCoord / DRAG_SENSITIVITY / dt) * direction
-            if (Math.abs(velocity) > 0.1) startMomentum()
-        }
-    }
-
-    lastDragPositions = []
+  }
+  lastDragPositions = []
 }
 
 // ----- Lifecycle -----
 onMount(() => {
-    console.log("Options", options);
-    if (!options || !options.images || options.images.length === 0) {
-        console.warn('TenuukiSpinViewer: No images provided')
-        return
-    }
+  if (!containerElement) return
+  const element = containerElement as HTMLElement;
+  const host = element.parentElement;
+  
+  if (!host) {
+    return {};
+  }
 
-    currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : getInitialFrameIndex()
-    currentFrameFloat = currentFrame
+  const imageBaseUrl = host.getAttribute('data-image-base-url')
+  console.log("image base: ", imageBaseUrl)
+  const imageCount = parseInt(host.getAttribute('data-image-count') || '0', 10)
+  const imageNumberPadding = parseInt(host.getAttribute('data-image-number-padding') || '4', 10)
 
-    preloadImagesProgressive()
+  if (imageBaseUrl && imageCount > 0) {
+    options.images = buildImagesFromTemplate(imageBaseUrl, imageCount, imageNumberPadding)
+  }
 
-    return () => {
-        if (spinInterval) clearInterval(spinInterval)
-        stopMomentum()
-    }
+  options.axis = host.getAttribute('data-axis') === 'y' ? 'y' : 'x'
+  options.direction = host.getAttribute('data-direction') === '-1' ? -1 : 1
+  options.draggable = host.getAttribute('data-draggable') !== 'false'
+  options.initialSpin = host.getAttribute('data-initial-spin') !== 'false'
+  options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
+  options.frameInterval = 60
+
+  currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : 0
+  currentFrameFloat = currentFrame
+  preloadImagesProgressive()
+  return () => { if (spinInterval) clearInterval(spinInterval); stopMomentum() }
 })
 
-$: currentSrc = options?.images?.[currentFrame] || ''
+$: currentSrc = options.images?.[currentFrame] || ''
 </script>
 
-<div class="tenuuki-spin-viewer">
-    {#if currentSrc}
-        <img
-            bind:this={imgElement}
-            src={currentSrc}
-            alt="Spinner frame {currentFrame}"
-            draggable="false"
-            style="
-                cursor: {isDragging ? 'grabbing' : 'grab'};
-                user-select: none;
-                touch-action: none;
-            "
-            on:pointerdown={handlePointerDown}
-        />
-    {:else}
-        <p>Loading...</p>
-    {/if}
+<div class="tenuuki-spin-viewer" bind:this={containerElement}>
+  {#if currentSrc}
+    <img
+      bind:this={imgElement}
+      src={currentSrc}
+      alt="Spinner frame {currentFrame}"
+      draggable="false"
+      style="
+        cursor: {isDragging ? 'grabbing' : 'grab'};
+        user-select: none;
+        touch-action: none;
+      "
+      on:pointerdown={handlePointerDown}
+    />
+  {:else}
+    <p>Loading...</p>
+  {/if}
 </div>

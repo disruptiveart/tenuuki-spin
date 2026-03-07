@@ -25,7 +25,7 @@
         <div
           class="tenuuki-spin-viewer-card"
         >
-          <SpinViewer options={{ 
+          <!-- <SpinViewer options={{ 
             images, 
             initialSpin: true, 
             spinOffset: 180, 
@@ -33,13 +33,25 @@
             axis: 'y',
             initialSpinDirection: -1,
             direction: -1
-          }}/>
+          }}/> -->
 
+
+        <tenuuki-spin-viewer
+          id="viewer"
+          data-image-base-url={`./spinner_frames_vertical_box/box-{frame}.webp`}
+          data-image-count="60"
+          data-image-number-padding="4"
+          data-axis="x"
+          data-direction="-1"
+          data-draggable="true"
+          data-initial-spin="true"
+          data-spin-offset="180"
+        ></tenuuki-spin-viewer>
 
 
         <div class="code-block card">
           <code>
-            {`<SpinViewer options={{ 
+            {`<tenuuki-spin-viewer options={{ 
               images, 
               initialSpin: true, 
               spinOffset: 180, 
@@ -47,7 +59,7 @@
               axis: 'y',
               initialSpinDirection: -1,
               direction: -1
-            }}/>
+            }}></tenuuki-spin-viewer>
 `}
           </code>
         </div>
@@ -57,7 +69,7 @@
       <div
         class="tenuuki-spin-viewer-card"
       >
-      
+<!--       
         <SpinViewer options={{ 
           images: horzImages, 
           initialSpin: true, 
@@ -66,11 +78,22 @@
           axis: 'x',
           initialSpinDirection: 1,
           direction: -1
-        }}/>
+        }}/> -->
 
+        <tenuuki-spin-viewer
+          id="viewer"
+          data-image-base-url={`./spinner_frames_horizontal_box/box-{frame}.webp`}
+          data-image-count="60"
+          data-image-number-padding="4"
+          data-axis="y"
+          data-direction="-1"
+          data-draggable="true"
+          data-initial-spin="true"
+          data-spin-offset="180"
+        ></tenuuki-spin-viewer>
         <div class="code-block card">
           <code>
-            {`<SpinViewer options={{ 
+            {`<tenuuki-spin-viewer options={{ 
               images: horzImages, 
               initialSpin: true, 
               spinOffset: 180, 
@@ -78,7 +101,7 @@
               axis: 'x',
               initialSpinDirection: 1,
               direction: -1
-            }}/>`}
+            }}></tenuuki-spin-viewer>`}
           </code>
         </div>
       </div>
