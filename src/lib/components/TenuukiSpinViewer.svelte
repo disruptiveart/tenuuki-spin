@@ -200,7 +200,7 @@ const startMomentum = () => {
 }
 
 // ----- Pointer events -----
-const getDragAxis = () => options?.axis ?? 'y'
+const getDragAxis = () => options?.axis ?? 'x'
 const getPointerCoord = (e: PointerEvent) => (getDragAxis() === 'x' ? e.clientX : e.clientY)
 
 const handlePointerDown = (e: PointerEvent) => {
@@ -290,6 +290,7 @@ const handlePointerUp = (e: PointerEvent) => {
 
 // ----- Lifecycle -----
 onMount(() => {
+    console.log("Options", options);
     if (!options || !options.images || options.images.length === 0) {
         console.warn('TenuukiSpinViewer: No images provided')
         return

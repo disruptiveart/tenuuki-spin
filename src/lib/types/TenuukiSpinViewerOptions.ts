@@ -1,6 +1,6 @@
 export interface TenuukiSpinViewerOptions {
   images: ReadonlyArray<string>;
-  axis?: 'x' | 'y'; // default: 'y'
+  axis?: 'x' | 'y'; // default: 'x'
   direction?: 1 | -1; // default: 1
   initialSpin?: boolean;
   initialSpinDirection?: 1 | -1; // default: 1
