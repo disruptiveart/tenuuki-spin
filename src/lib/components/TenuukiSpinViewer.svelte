@@ -15,6 +15,11 @@ const loadedFlags: boolean[] = []
 let loadedCount = 0
 let spinStarted = false
 
+let isDragging = false
+let dragStartX = 0
+let dragStartFrame = 0
+const DRAG_SENSITIVITY = 2 // pixels per frame
+
 const normalizeFrameIndex = (idx: number, total: number) => {
   if (total <= 0) return 0
   return ((idx % total) + total) % total
@@ -44,8 +49,6 @@ const getStartFrameFromSpinOffset = () => {
   const targetFrame = getInitialFrameIndex()
   const offsetFrames = getOffsetFramesFromSpinOffset()
 
-  // spinOffset is the starting offset FROM initialFrame
-  // Subtract so we spin forward back TO initialFrame
   return normalizeFrameIndex(targetFrame - offsetFrames, total)
 }
 
@@ -55,7 +58,6 @@ const areFramesLoadedForForwardPath = (startFrame: number, targetFrame: number) 
   const total = options?.images?.length ?? 0
   if (total === 0) return false
 
-  // Forward path without wrap: start -> ... -> target
   if (startFrame <= targetFrame) {
     for (let i = startFrame; i <= targetFrame; i++) {
       if (!isLoaded(i)) return false
@@ -63,7 +65,6 @@ const areFramesLoadedForForwardPath = (startFrame: number, targetFrame: number) 
     return true
   }
 
-  // Forward path with wrap: start -> ... -> last -> 0 -> ... -> target
   for (let i = startFrame; i < total; i++) {
     if (!isLoaded(i)) return false
   }
@@ -141,6 +142,42 @@ const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
   loadChunk()
 }
 
+const handlePointerDown = (e: PointerEvent) => {
+  isDragging = true
+  dragStartX = e.clientX
+  dragStartFrame = currentFrame
+
+  // Stop any ongoing intro spin
+  if (spinInterval) {
+    clearInterval(spinInterval)
+    spinInterval = undefined
+  }
+
+  if (imgElement) {
+    imgElement.setPointerCapture(e.pointerId)
+  }
+}
+
+const handlePointerMove = (e: PointerEvent) => {
+  if (!isDragging) return
+
+  const total = options?.images?.length ?? 0
+  if (total === 0) return
+
+  const deltaX = e.clientX - dragStartX
+  const frameDelta = Math.round(deltaX / DRAG_SENSITIVITY)
+
+  currentFrame = normalizeFrameIndex(dragStartFrame + frameDelta, total)
+}
+
+const handlePointerUp = (e: PointerEvent) => {
+  isDragging = false
+
+  if (imgElement) {
+    imgElement.releasePointerCapture(e.pointerId)
+  }
+}
+
 onMount(() => {
   if (!options || !options.images || options.images.length === 0) {
     console.warn('TenuukiSpinViewer: No images provided in options')
@@ -161,7 +198,20 @@ $: currentSrc = options?.images?.[currentFrame] || ''
 
 <div class="tenuuki-spin-viewer">
   {#if currentSrc}
-    <img bind:this={imgElement} src={currentSrc} alt="Spinner frame {currentFrame}" />
+    <img 
+        bind:this={imgElement} 
+        src={currentSrc} 
+        alt="Spinner frame {currentFrame}"
+        draggable="false"
+        on:pointerdown={handlePointerDown}
+        on:pointermove={handlePointerMove}
+        on:pointerup={handlePointerUp}
+        on:pointercancel={handlePointerUp}
+        style="
+            cursor: {isDragging ? 'grabbing' : 'grab'};
+            user-select: none;
+            touch-action: none;
+        " />
   {:else}
     <p>Loading...</p>
   {/if}

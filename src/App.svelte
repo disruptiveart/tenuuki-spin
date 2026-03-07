@@ -7,7 +7,7 @@
 
 <main>
   <h1>Tenuuki Spin</h1>
-  <div class="card">
+  <div class="card tenuuki-spin-viewer-card">
     <SpinViewer options={{ images, initialSpin: true, spinOffset: 180, initialFrame: 10 }}/>
   </div>
 </main>
@@ -17,5 +17,10 @@
   padding: 1em;
   border-radius: 0.5em;
   background-color: #f0f0f0;
+}
+
+.tenuuki-spin-viewer-card {
+  width: 300px;
+  height: 300px;
 }
 </style>
