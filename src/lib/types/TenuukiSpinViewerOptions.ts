@@ -3,6 +3,7 @@ export interface TenuukiSpinViewerOptions {
 
   direction?: 1 | -1; // default: 1
   initialSpin?: boolean;
+  initialSpinDirection?: 1 | -1; // default: 1
   spinOffset?: number; // degrees to offset the initial spin by. Defaults to 0.
   
   draggable?: boolean;

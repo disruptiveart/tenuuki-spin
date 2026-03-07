@@ -2,7 +2,7 @@
   import SpinViewer from './lib/components/TenuukiSpinViewer.svelte';
 
   const imageCount = 60;
-  const images = Array.from({ length: imageCount }, (_, i) => `/spinner_frames/box-${String(i+1).padStart(4, '0')}.webp`);
+  const images = Array.from({ length: imageCount }, (_, i) => `/spinner_frames_horizontal_box/box-${String(i+1).padStart(4, '0')}.webp`);
 </script>
 
 <main>
@@ -12,7 +12,8 @@
       images, 
       initialSpin: true, 
       spinOffset: 180, 
-      initialFrame: 10
+      initialFrame: 20,
+      direction: -1
        }}/>
   </div>
 </main>

@@ -74,7 +74,7 @@ const maybeBeginSpin = () => {
 
     const total = options.images.length;
     const startFrame = getStartFrameFromSpinOffset();
-    const targetFrame = getInitialFrameIndex();
+    const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
 
     let ready = true;
 
@@ -100,7 +100,8 @@ const beginInitialSpinForwardToInitialFrame = () => {
 
     const total = options.images.length;
     const startFrame = getStartFrameFromSpinOffset();
-    const targetFrame = getInitialFrameIndex()
+    const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
+    const spinDirection = options?.initialSpinDirection ?? 1
     currentFrame = startFrame;
     currentFrameFloat = startFrame;
 
@@ -109,14 +110,13 @@ const beginInitialSpinForwardToInitialFrame = () => {
     }
 
     spinInterval = setInterval(() => {
+        currentFrame = normalizeFrameIndex(currentFrame + spinDirection, total);
+        currentFrameFloat = currentFrame;
+
         if (currentFrame === targetFrame) {
             clearInterval(spinInterval);
             spinInterval = undefined;
-            return;
         }
-
-        currentFrame = (currentFrame + 1) % total;
-        currentFrameFloat = currentFrame;
     }, options?.frameInterval ?? frameInterval);
 }
 
