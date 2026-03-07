@@ -22,20 +22,31 @@ let spinStarted = false
 
 // ----- Drag / Momentum -----
 let isDragging = false
-let dragStartX = 0
+let dragStartCoord = 0
 let dragStartFrame = 0
 const DRAG_SENSITIVITY = 2
 
 let velocity = 0
-let lastDragPositions: Array<{ x: number; time: number }> = []
+let lastDragPositions: Array<{ coord: number; time: number }> = []
 let momentumId: number | undefined
 const MOMENTUM_FRICTION = 0.92
 const VELOCITY_SAMPLES = 5
 
 // ----- Spin direction -----
-// 1 = normal (clockwise top-down), -1 = inverted (counter-clockwise)
+// Keeps your current reversed mapping behavior:
+// option -1 => internal 1, option 1 (or undefined) => internal -1
+const toInternalDirection = (dir?: 1 | -1) => (dir === -1 ? 1 : -1)
+
 const getSpinDirection = () => {
-    return options?.direction === -1 ? 1 : -1
+    return toInternalDirection(options?.direction)
+}
+
+// Separate control for intro spin direction.
+// If not provided, it falls back to regular direction.
+const getInitialSpinDirection = () => {
+    return options?.initialSpinDirection === 1 || options?.initialSpinDirection === -1
+        ? toInternalDirection(options.initialSpinDirection)
+        : getSpinDirection()
 }
 
 // ----- Utilities -----
@@ -75,10 +86,14 @@ const maybeBeginSpin = () => {
     const total = options.images.length;
     const startFrame = getStartFrameFromSpinOffset();
     const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
+    const spinDirection = getInitialSpinDirection()
 
     let ready = true;
-
-    for (let i = startFrame; i !== (targetFrame + 1) % total; i = (i + 1) % total) {
+    for (
+        let i = startFrame;
+        i !== normalizeFrameIndex(targetFrame + spinDirection, total);
+        i = normalizeFrameIndex(i + spinDirection, total)
+    ) {
         if (!isLoaded(i)) { ready = false; break }
     }
 
@@ -101,7 +116,8 @@ const beginInitialSpinForwardToInitialFrame = () => {
     const total = options.images.length;
     const startFrame = getStartFrameFromSpinOffset();
     const targetFrame = options?.initialFrame ? getInitialFrameIndex() : 0
-    const spinDirection = options?.initialSpinDirection ?? 1
+    const spinDirection = getInitialSpinDirection()
+
     currentFrame = startFrame;
     currentFrameFloat = startFrame;
 
@@ -184,20 +200,23 @@ const startMomentum = () => {
 }
 
 // ----- Pointer events -----
+const getDragAxis = () => options?.axis ?? 'y'
+const getPointerCoord = (e: PointerEvent) => (getDragAxis() === 'x' ? e.clientX : e.clientY)
+
 const handlePointerDown = (e: PointerEvent) => {
     if (options.draggable === false) {
         return;
     }
     
     isDragging = true
-    dragStartX = e.clientX
+    dragStartCoord = getPointerCoord(e)
     dragStartFrame = currentFrameFloat
-    lastDragPositions = [{ x: e.clientX, time: performance.now() }]
+    lastDragPositions = [{ coord: dragStartCoord, time: performance.now() }]
 
     if (spinInterval) { 
         clearInterval(spinInterval); 
         spinInterval = undefined;
-}
+    }
 
     stopMomentum()
 
@@ -220,18 +239,19 @@ const handlePointerMove = (e: PointerEvent) => {
     }
 
     const total = options?.images?.length ?? 0;
-
     if (total <= 0) {
         return;
     }
 
     const direction = getSpinDirection()
-    const deltaX = (e.clientX - dragStartX) * direction
-    currentFrameFloat = normalizeFrameIndex(dragStartFrame + deltaX / DRAG_SENSITIVITY, total)
+    const pointerCoord = getPointerCoord(e)
+    const delta = (pointerCoord - dragStartCoord) * direction
+
+    currentFrameFloat = normalizeFrameIndex(dragStartFrame + delta / DRAG_SENSITIVITY, total)
     currentFrame = Math.floor(currentFrameFloat)
 
     const now = performance.now()
-    lastDragPositions.push({ x: e.clientX, time: now })
+    lastDragPositions.push({ coord: pointerCoord, time: now })
     if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
 }
 
@@ -256,10 +276,11 @@ const handlePointerUp = (e: PointerEvent) => {
         const first = lastDragPositions[0]
         const last = lastDragPositions[lastDragPositions.length - 1]
         const dt = (last.time - first.time) / 1000
-        const dx = last.x - first.x
+        const dCoord = last.coord - first.coord
+
         if (dt > 0) {
             const direction = getSpinDirection()
-            velocity = (dx / DRAG_SENSITIVITY / dt) * direction
+            velocity = (dCoord / DRAG_SENSITIVITY / dt) * direction
             if (Math.abs(velocity) > 0.1) startMomentum()
         }
     }
