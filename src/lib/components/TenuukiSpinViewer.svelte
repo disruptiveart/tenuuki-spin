@@ -39,7 +39,7 @@ const getInitialFrameIndex = () => Math.min((options?.initialFrame ?? 1) - 1, op
 
 // ----- Image generation -----
 const buildImagesFromTemplate = (template: string, count: number, padding: number) =>
-  Array.from({ length: count }, (_, i) => template.replace('{frame}', String(i + 1).padStart(padding, '0')))
+  Array.from({ length: count }, (_, i) => template.replace(`{${options.replacementToken}}`, String(i + 1).padStart(padding, '0')))
 
 // ----- Preload -----
 const markLoaded = (i: number) => {
@@ -198,10 +198,6 @@ onMount(() => {
   const imageCount = parseInt(host.getAttribute('data-image-count') || '0', 10)
   const imageNumberPadding = parseInt(host.getAttribute('data-image-number-padding') || '4', 10)
 
-  if (imageBaseUrl && imageCount > 0) {
-    options.images = buildImagesFromTemplate(imageBaseUrl, imageCount, imageNumberPadding)
-  }
-
   options.axis = host.getAttribute('data-axis') === 'y' ? 'y' : 'x'
   options.direction = host.getAttribute('data-direction') === '-1' ? -1 : 1
   options.draggable = host.getAttribute('data-draggable') !== 'false'
@@ -209,6 +205,11 @@ onMount(() => {
   options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
   options.initialFrame = parseInt(host.getAttribute('data-initial-frame') || '1', 10)
   options.frameInterval = 60
+  options.replacementToken = host.getAttribute('data-replacement-token') || 'frame'
+
+  if (imageBaseUrl && imageCount > 0) {
+    options.images = buildImagesFromTemplate(imageBaseUrl, imageCount, imageNumberPadding)
+  }
 
   currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : 0
   currentFrameFloat = currentFrame

@@ -1994,7 +1994,7 @@ function Nr(e, t, n, r, i, a) {
 var Pr = Yn("<img draggable=\"false\"/>"), Fr = Yn("<p>Loading...</p>"), Ir = Yn("<div class=\"tenuuki-spin-viewer\"><!></div>");
 function Lr(e, t) {
 	Fe(t, !1);
-	let n = Tt(), r = Dr(t, "options", 28, () => ({ images: [] })), i = Tt(0), a = 0, o = Tt(), s = Tt(), c, l = [], u = [], d = 0, f = !1, p = Tt(!1), m = 0, h = 0, g = 0, _ = [], v, y = (e, t) => (e % t + t) % t, b = () => r()?.direction === -1 ? 1 : -1, x = () => Math.min((r()?.initialFrame ?? 1) - 1, r().images.length - 1), S = (e, t, n) => Array.from({ length: t }, (t, r) => e.replace("{frame}", String(r + 1).padStart(n, "0"))), ee = (e) => {
+	let n = Tt(), r = Dr(t, "options", 28, () => ({ images: [] })), i = Tt(0), a = 0, o = Tt(), s = Tt(), c, l = [], u = [], d = 0, f = !1, p = Tt(!1), m = 0, h = 0, g = 0, _ = [], v, y = (e, t) => (e % t + t) % t, b = () => r()?.direction === -1 ? 1 : -1, x = () => Math.min((r()?.initialFrame ?? 1) - 1, r().images.length - 1), S = (e, t, n) => Array.from({ length: t }, (t, i) => e.replace(`{${r().replacementToken}}`, String(i + 1).padStart(n, "0"))), ee = (e) => {
 		u[e] || (u[e] = !0, d++, ne());
 	}, te = (e = 10, t = 50) => {
 		let n = 0, i = () => {
@@ -2063,7 +2063,7 @@ function Lr(e, t) {
 		let t = e.getAttribute("data-image-base-url");
 		console.log("image base: ", t);
 		let n = parseInt(e.getAttribute("data-image-count") || "0", 10), o = parseInt(e.getAttribute("data-image-number-padding") || "4", 10);
-		return t && n > 0 && r(r().images = S(t, n, o), !0), r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().initialFrame = parseInt(e.getAttribute("data-initial-frame") || "1", 10), !0), r(r().frameInterval = 60, !0), z(i, r().initialSpin ? C() : 0), a = $(i), te(), () => {
+		return r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().initialFrame = parseInt(e.getAttribute("data-initial-frame") || "1", 10), !0), r(r().frameInterval = 60, !0), r(r().replacementToken = e.getAttribute("data-replacement-token") || "frame", !0), t && n > 0 && r(r().images = S(t, n, o), !0), z(i, r().initialSpin ? C() : 0), a = $(i), te(), () => {
 			c && clearInterval(c), ie();
 		};
 	}), tn(() => (In(r()), $(i)), () => {

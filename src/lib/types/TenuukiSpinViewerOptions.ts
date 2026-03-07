@@ -12,4 +12,5 @@ export interface TenuukiSpinViewerOptions {
 
   // 1-based index of the image to start on. Defaults to 1.
   initialFrame?: number;
+  replacementToken?: string; // default: 'frame'
 }
