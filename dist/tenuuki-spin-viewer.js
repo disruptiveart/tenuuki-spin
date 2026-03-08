@@ -23,7 +23,7 @@ function y() {
 		reject: t
 	};
 }
-const b = 1024, x = 2048, S = 4096, ee = 8192, te = 32768, ne = 65536, C = 1 << 19, re = 1 << 20, ie = 65536, ae = 1 << 21, oe = 1 << 23, se = Symbol("$state"), ce = Symbol("legacy props"), le = Symbol(""), w = new class extends Error {
+const b = 1024, x = 2048, S = 4096, ee = 8192, te = 32768, ne = 65536, re = 1 << 19, ie = 1 << 20, ae = 65536, oe = 1 << 21, se = 1 << 23, C = Symbol("$state"), ce = Symbol("legacy props"), le = Symbol(""), w = new class extends Error {
 	name = "StaleReactionError";
 	message = "The reaction that called `getAbortSignal()` was re-run or destroyed";
 }(), ue = !!globalThis.document?.contentType && globalThis.document.contentType.includes("xml");
@@ -168,7 +168,7 @@ function Be() {
 }
 function Ve(e) {
 	var t = q;
-	if (t === null) return W.f |= oe, e;
+	if (t === null) return W.f |= se, e;
 	if (!(t.f & 32768) && !(t.f & 4)) throw e;
 	A(e, t);
 }
@@ -195,7 +195,7 @@ function Ue(e) {
 	e.f & 512 || e.deps === null ? j(e, b) : j(e, S);
 }
 function We(e) {
-	if (e !== null) for (let t of e) !(t.f & 2) || !(t.f & 65536) || (t.f ^= ie, We(t.deps));
+	if (e !== null) for (let t of e) !(t.f & 2) || !(t.f & 65536) || (t.f ^= ae, We(t.deps));
 }
 function Ge(e, t, n) {
 	e.f & 2048 ? t.add(e) : e.f & 4096 && n.add(e), We(e.deps), j(e, b);
@@ -463,7 +463,7 @@ function at(e) {
 		})));
 	};
 }
-var ot = ne | C;
+var ot = ne | re;
 function st(e, t, n, r) {
 	new ct(e, t, n, r);
 }
@@ -673,7 +673,7 @@ function ft() {
 }
 function pt(e) {
 	var t = 2 | x, n = W !== null && W.f & 2 ? W : null;
-	return q !== null && (q.f |= C), {
+	return q !== null && (q.f |= re), {
 		ctx: O,
 		deps: null,
 		effects: null,
@@ -705,9 +705,9 @@ function mt(e, t, n) {
 			s.get(n)?.reject(w), s.delete(n), s.set(n, t);
 		}
 		let c = (e, t = void 0) => {
-			if (n.activate(), t) t !== w && (a.f |= oe, Et(a, t));
+			if (n.activate(), t) t !== w && (a.f |= se, Et(a, t));
 			else {
-				a.f & 8388608 && (a.f ^= oe), Et(a, e);
+				a.f & 8388608 && (a.f ^= se), Et(a, e);
 				for (let [e, t] of s) {
 					if (s.delete(e), e === n) break;
 					t.reject(w);
@@ -750,7 +750,7 @@ function vt(e) {
 	var t, n = q;
 	J(_t(e));
 	try {
-		e.f &= ~ie, gt(e), t = kn(e);
+		e.f &= ~ae, gt(e), t = kn(e);
 	} finally {
 		J(n);
 	}
@@ -823,13 +823,13 @@ function kt(e, t) {
 			var c = (s & x) === 0;
 			if (c && j(o, t), s & 2) {
 				var l = o;
-				N?.delete(l), s & 65536 || (s & 512 && (o.f |= ie), kt(l, S));
+				N?.delete(l), s & 65536 || (s & 512 && (o.f |= ae), kt(l, S));
 			} else c && (s & 16 && F !== null && F.add(o), I(o));
 		}
 	}
 }
 function At(e) {
-	if (typeof e != "object" || !e || se in e) return e;
+	if (typeof e != "object" || !e || C in e) return e;
 	let t = m(e);
 	if (t !== f && t !== p) return e;
 	var n = new Map(), a = i(e), o = R(0), s = null, c = wn, l = (e) => {
@@ -859,7 +859,7 @@ function At(e) {
 			return !0;
 		},
 		get(t, i, a) {
-			if (i === se) return e;
+			if (i === C) return e;
 			var o = n.get(i), c = i in t;
 			if (o === void 0 && (!c || u(t, i)?.writable) && (o = l(() => R(At(c ? t[i] : r), s)), n.set(i, o)), o !== void 0) {
 				var d = $(o);
@@ -884,7 +884,7 @@ function At(e) {
 			return i;
 		},
 		has(e, t) {
-			if (t === se) return !0;
+			if (t === C) return !0;
 			var i = n.get(t), a = i !== void 0 && i.v !== r || Reflect.has(e, t);
 			return (i !== void 0 || q !== null && (!a || u(e, t)?.writable)) && (i === void 0 && (i = l(() => R(a ? At(e[t]) : r, s)), n.set(t, i)), $(i) === r) ? !1 : a;
 		},
@@ -1032,21 +1032,21 @@ function Yt(e) {
 	} else return Xt(e);
 }
 function Xt(e) {
-	return B(4 | re, e);
+	return B(4 | ie, e);
 }
 function Zt(e) {
-	return Gt("$effect.pre"), B(8 | re, e);
+	return Gt("$effect.pre"), B(8 | ie, e);
 }
 function Qt(e) {
 	Ze.ensure();
-	let t = B(64 | C, e);
+	let t = B(64 | re, e);
 	return () => {
 		H(t);
 	};
 }
 function $t(e) {
 	Ze.ensure();
-	let t = B(64 | C, e);
+	let t = B(64 | re, e);
 	return (e = {}) => new Promise((n) => {
 		e.outro ? pn(t, () => {
 			H(t), n(void 0);
@@ -1077,7 +1077,7 @@ function nn() {
 	});
 }
 function rn(e) {
-	return B(4194304 | C, e);
+	return B(4194304 | re, e);
 }
 function an(e, t = 0) {
 	return B(8 | t, e);
@@ -1091,7 +1091,7 @@ function sn(e, t = 0) {
 	return B(16 | t, e);
 }
 function V(e) {
-	return B(32 | C, e);
+	return B(32 | re, e);
 }
 function cn(e) {
 	var t = e.teardown;
@@ -1217,7 +1217,7 @@ function En() {
 function Dn(e) {
 	var t = e.f;
 	if (t & 2048) return !0;
-	if (t & 2 && (e.f &= ~ie), t & 4096) {
+	if (t & 2 && (e.f &= ~ae), t & 4096) {
 		for (var n = e.deps, r = n.length, i = 0; i < r; i++) {
 			var a = n[i];
 			if (Dn(a) && yt(a), a.wv > e.wv) return !0;
@@ -1239,7 +1239,7 @@ function kn(e) {
 		e.ac.abort(w);
 	}), e.ac = null);
 	try {
-		e.f |= ae;
+		e.f |= oe;
 		var u = e.fn, d = u();
 		e.f |= te;
 		var f = e.deps, p = M?.is_fork;
@@ -1255,11 +1255,11 @@ function kn(e) {
 			if (t !== null) for (let e of t) e.rv = Cn;
 			Q !== null && (r === null ? r = Q : r.push(...Q));
 		}
-		return e.f & 8388608 && (e.f ^= oe), d;
+		return e.f & 8388608 && (e.f ^= se), d;
 	} catch (e) {
 		return Ve(e);
 	} finally {
-		e.f ^= ae, X = t, Z = n, Q = r, W = i, Y = a, Pe(o), G = s, wn = c;
+		e.f ^= oe, X = t, Z = n, Q = r, W = i, Y = a, Pe(o), G = s, wn = c;
 	}
 }
 function An(e, t) {
@@ -1273,7 +1273,7 @@ function An(e, t) {
 	}
 	if (n === null && t.f & 2 && (X === null || !o.call(X, t))) {
 		var s = t;
-		s.f & 512 && (s.f ^= 512, s.f &= ~ie), Ue(s), bt(s), jn(s, 0);
+		s.f & 512 && (s.f ^= 512, s.f &= ~ae), Ue(s), bt(s), jn(s, 0);
 	}
 }
 function jn(e, t) {
@@ -1339,10 +1339,10 @@ function Fn(e) {
 }
 function In(e) {
 	if (!(typeof e != "object" || !e || e instanceof EventTarget)) {
-		if (se in e) Ln(e);
+		if (C in e) Ln(e);
 		else if (!Array.isArray(e)) for (let t in e) {
 			let n = e[t];
-			typeof n == "object" && n && se in n && Ln(n);
+			typeof n == "object" && n && C in n && Ln(n);
 		}
 	}
 }
@@ -1710,7 +1710,7 @@ function br(e) {
 	return n;
 }
 function xr(e, t) {
-	return e === t || e?.[se] === t;
+	return e === t || e?.[C] === t;
 }
 function Sr(e = {}, t, n, r) {
 	return en(() => {
@@ -1765,7 +1765,7 @@ function Er(e) {
 function Dr(t, n, r, i) {
 	var a = !e || (r & 2) != 0, o = (r & 8) != 0, s = (r & 16) != 0, c = i, l = !0, d = () => (l && (l = !1, c = s ? Fn(i) : i), c), f;
 	if (o) {
-		var p = se in t || ce in t;
+		var p = C in t || ce in t;
 		f = u(t, n)?.set ?? (p && n in t ? (e) => t[n] = e : void 0);
 	}
 	var m, h = !1;
@@ -1994,66 +1994,66 @@ function Nr(e, t, n, r, i, a) {
 var Pr = Yn("<img draggable=\"false\"/>"), Fr = Yn("<p>Loading...</p>"), Ir = Yn("<div class=\"tenuuki-spin-viewer\"><!></div>");
 function Lr(e, t) {
 	Fe(t, !1);
-	let n = Tt(), r = Dr(t, "options", 28, () => ({ images: [] })), i = Tt(0), a = 0, o = Tt(), s = Tt(), c, l = [], u = [], d = 0, f = !1, p = Tt(!1), m = 0, h = 0, g = 0, _ = [], v, y = (e, t) => (e % t + t) % t, b = () => r()?.direction === -1 ? 1 : -1, x = () => Math.min((r()?.initialFrame ?? 1) - 1, r().images.length - 1), S = (e, t, n) => Array.from({ length: t }, (t, i) => e.replace(`{${r().replacementToken}}`, String(i + 1).padStart(n, "0"))), ee = (e) => {
-		u[e] || (u[e] = !0, d++, ne());
-	}, te = (e = 10, t = 50) => {
+	let n = Tt(), r = Dr(t, "options", 28, () => ({ images: [] })), i = Tt(0), a = 0, o = Tt(), s = Tt(), c, l = [], u = [], d = 0, f = !1, p = Tt(!1), m = 0, h = 0, g = 2.5, _ = 0, v = [], y, b = (e, t) => (e % t + t) % t, x = () => r()?.direction === -1 ? 1 : -1, S = () => Math.min((r()?.initialFrame ?? 1) - 1, r().images.length - 1), ee = (e, t, n) => Array.from({ length: t }, (t, i) => e.replace(`{${r().replacementToken}}`, String(i + 1).padStart(n, "0"))), te = (e) => {
+		u[e] || (u[e] = !0, d++, re());
+	}, ne = (e = 10, t = 50) => {
 		let n = 0, i = () => {
 			for (let t = n; t < n + e && t < r().images.length; t++) {
 				let e = new Image();
-				u[t] = !1, e.onload = () => ee(t), e.onerror = () => {
-					console.warn(`[TenuukiSpinViewer] Failed to load image ${t}`), ee(t);
+				u[t] = !1, e.onload = () => te(t), e.onerror = () => {
+					console.warn(`[TenuukiSpinViewer] Failed to load image ${t}`), te(t);
 				}, e.src = r().images[t], l[t] = e;
 			}
 			n += e, n < r().images.length && setTimeout(i, t);
 		};
 		i();
-	}, ne = () => {
+	}, re = () => {
 		if (f || !r().initialSpin) return;
-		let e = r().images.length, t = C(), n = x(), i = !0;
-		for (let r = t; r !== y(n + b(), e); r = y(r + b(), e)) if (!u[r]) {
+		let e = r().images.length, t = ie(), n = S(), i = !0;
+		for (let r = t; r !== b(n + x(), e); r = b(r + x(), e)) if (!u[r]) {
 			i = !1;
 			break;
 		}
-		i && (f = !0, re());
-	}, C = () => {
+		i && (f = !0, ae());
+	}, ie = () => {
 		let e = r().images.length;
-		return y(x() - Math.round((r().spinOffset ?? 0) % 360 / 360 * e), e);
-	}, re = () => {
+		return b(S() - Math.round((r().spinOffset ?? 0) % 360 / 360 * e), e);
+	}, ae = () => {
 		if (!r().initialSpin) return;
 		c && clearInterval(c);
-		let e = r().images.length, t = C(), n = x(), o = b();
+		let e = r().images.length, t = ie(), n = S(), o = x();
 		z(i, t), a = t, c = setInterval(() => {
-			z(i, y($(i) + o, e)), a = $(i), $(i) === n && (clearInterval(c), c = void 0);
+			z(i, b($(i) + o, e)), a = $(i), $(i) === n && (clearInterval(c), c = void 0);
 		}, r().frameInterval ?? 60);
-	}, ie = () => {
-		v && cancelAnimationFrame(v), v = void 0, g = 0;
-	}, ae = () => {
+	}, oe = () => {
+		y && cancelAnimationFrame(y), y = void 0, _ = 0;
+	}, se = () => {
 		let e = r().images.length;
-		if (e === 0 || Math.abs(g) < .1) return;
+		if (e === 0 || Math.abs(_) < .1) return;
 		let t = performance.now(), n = (r) => {
 			let o = (r - t) / 1e3;
-			t = r, a = y(a + g * o, e), z(i, Math.floor(a)), g *= .92 ** (o * 60), v = Math.abs(g) >= .01 ? requestAnimationFrame(n) : void 0;
+			t = r, a = b(a + _ * o, e), z(i, Math.floor(a)), _ *= .92 ** (o * 60), y = Math.abs(_) >= .01 ? requestAnimationFrame(n) : void 0;
 		};
-		v = requestAnimationFrame(n);
-	}, oe = (e) => r().axis === "y" ? e.clientY : e.clientX, se = (e) => {
-		r().draggable !== !1 && (z(p, !0), m = oe(e), h = a, _ = [{
+		y = requestAnimationFrame(n);
+	}, C = (e) => r().axis === "y" ? e.clientY : e.clientX, ce = (e) => {
+		r().draggable !== !1 && (z(p, !0), m = C(e), h = a, v = [{
 			coord: m,
 			time: performance.now()
-		}], c &&= (clearInterval(c), void 0), ie(), $(o) && $(o).setPointerCapture(e.pointerId), window.addEventListener("pointermove", ce), window.addEventListener("pointerup", le), window.addEventListener("pointercancel", le));
-	}, ce = (e) => {
+		}], c &&= (clearInterval(c), void 0), oe(), $(o) && $(o).setPointerCapture(e.pointerId), window.addEventListener("pointermove", le), window.addEventListener("pointerup", w), window.addEventListener("pointercancel", w));
+	}, le = (e) => {
 		if (!$(p)) return;
-		let t = r().images.length, n = oe(e), o = (n - m) * b();
-		a = y(h + o / 2, t), z(i, Math.floor(a)), _.push({
+		let t = r().images.length, n = C(e), o = (n - m) * x();
+		a = b(h + o / g, t), z(i, Math.floor(a)), v.push({
 			coord: n,
 			time: performance.now()
-		}), _.length > 5 && _.shift();
-	}, le = (e) => {
+		}), v.length > 2 && v.shift();
+	}, w = (e) => {
 		if ($(p)) {
-			if (z(p, !1), window.removeEventListener("pointermove", ce), window.removeEventListener("pointerup", le), window.removeEventListener("pointercancel", le), $(o) && $(o).releasePointerCapture(e.pointerId), _.length >= 2) {
-				let e = _[0], t = _[_.length - 1], n = (t.time - e.time) / 1e3, r = t.coord - e.coord;
-				n > 0 && (g = r / 2 / n * b(), Math.abs(g) > .1 && ae());
+			if (z(p, !1), window.removeEventListener("pointermove", le), window.removeEventListener("pointerup", w), window.removeEventListener("pointercancel", w), $(o) && $(o).releasePointerCapture(e.pointerId), v.length >= 2) {
+				let e = v[0], t = v[v.length - 1], n = (t.time - e.time) / 1e3, r = t.coord - e.coord;
+				n > 0 && (_ = r / g / n * x(), Math.abs(_) > .1 && se());
 			}
-			_ = [];
+			v = [];
 		}
 	};
 	or(() => {
@@ -2063,13 +2063,13 @@ function Lr(e, t) {
 		let t = e.getAttribute("data-image-base-url");
 		console.log("image base: ", t);
 		let n = parseInt(e.getAttribute("data-image-count") || "0", 10), o = parseInt(e.getAttribute("data-image-number-padding") || "4", 10);
-		return r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().initialFrame = parseInt(e.getAttribute("data-initial-frame") || "1", 10), !0), r(r().frameInterval = 60, !0), r(r().replacementToken = e.getAttribute("data-replacement-token") || "frame", !0), t && n > 0 && r(r().images = S(t, n, o), !0), z(i, r().initialSpin ? C() : 0), a = $(i), te(), () => {
-			c && clearInterval(c), ie();
+		return r(r().axis = e.getAttribute("data-axis") === "y" ? "y" : "x", !0), r(r().direction = e.getAttribute("data-direction") === "-1" ? -1 : 1, !0), r(r().draggable = e.getAttribute("data-draggable") !== "false", !0), r(r().initialSpin = e.getAttribute("data-initial-spin") !== "false", !0), r(r().spinOffset = parseInt(e.getAttribute("data-spin-offset") || "0", 10), !0), r(r().initialFrame = parseInt(e.getAttribute("data-initial-frame") || "1", 10), !0), r(r().frameInterval = 60, !0), r(r().replacementToken = e.getAttribute("data-replacement-token") || "frame", !0), t && n > 0 && r(r().images = ee(t, n, o), !0), z(i, r().initialSpin ? ie() : 0), a = $(i), ne(), () => {
+			c && clearInterval(c), oe();
 		};
 	}), tn(() => (In(r()), $(i)), () => {
 		z(n, r().images?.[$(i)] || "");
 	}), nn();
-	var w = {
+	var ue = {
 		get options() {
 			return r();
 		},
@@ -2078,7 +2078,7 @@ function Lr(e, t) {
 		}
 	};
 	Cr();
-	var ue = Ir(), de = zt(ue), fe = (e) => {
+	var de = Ir(), fe = zt(de), pe = (e) => {
 		var t = Pr();
 		Sr(t, (e) => z(o, e), () => $(o)), on(() => {
 			_r(t, "src", $(n)), _r(t, "alt", `Spinner frame ${$(i) ?? ""}`), pr(t, `
@@ -2086,12 +2086,12 @@ function Lr(e, t) {
         user-select: none;
         touch-action: none;
       `);
-		}), Hn("pointerdown", t, se), Xn(e, t);
-	}, pe = (e) => {
+		}), Hn("pointerdown", t, ce), Xn(e, t);
+	}, me = (e) => {
 		Xn(e, Fr());
 	};
-	return cr(de, (e) => {
-		$(n) ? e(fe) : e(pe, -1);
-	}), De(ue), Sr(ue, (e) => z(s, e), () => $(s)), Xn(e, ue), Ie(w);
+	return cr(fe, (e) => {
+		$(n) ? e(pe) : e(me, -1);
+	}), De(de), Sr(de, (e) => z(s, e), () => $(s)), Xn(e, de), Ie(ue);
 }
 customElements.define("tenuuki-spin-viewer", Nr(Lr, { options: {} }, [], []));

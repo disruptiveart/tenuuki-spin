@@ -24,13 +24,13 @@ let spinStarted = false
 let isDragging = false
 let dragStartCoord = 0
 let dragStartFrame = 0
-const DRAG_SENSITIVITY = 2
+const DRAG_SENSITIVITY = 2.5
 
 let velocity = 0
 let lastDragPositions: Array<{ coord: number; time: number }> = []
 let momentumId: number | undefined
 const MOMENTUM_FRICTION = 0.92
-const VELOCITY_SAMPLES = 5
+const VELOCITY_SAMPLES = 2
 
 // ----- Utilities -----
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
