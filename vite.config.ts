@@ -9,11 +9,16 @@ export default defineConfig({
   base: isGithubDeploy ? '/tenuuki-spin/' : '/',
   build: isLibBuild
     ? {
+        target: 'es2017',
         lib: {
           entry: 'src/lib/tenuuki-spin-viewer.ts',
           name: 'TenuukiSpinViewer',
-          formats: ['es'],
-          fileName: () => 'tenuuki-spin-viewer.js'
+          formats: ['es', 'cjs', 'umd'],
+          fileName: (format) => {
+            if (format === 'es') return 'tenuuki-spin-viewer.js'
+            if (format === 'cjs') return 'tenuuki-spin-viewer.cjs'
+            return 'tenuuki-spin-viewer.umd.js'
+          }
         },
         rollupOptions: {
           output: {
