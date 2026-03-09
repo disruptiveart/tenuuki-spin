@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tenuuki-spin</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./lib/tenuuki-spin-viewer.css" />
+    <style>
+      tenuuki-spin-viewer {
+        display: block;
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body class="p-4">
+    <h1 class="h4 mb-3">Tenuuki Spin</h1>
+    <p>A Svelte-based 3D spinner web component for product views.</p>
+
+    <h2 class="h5 mt-4">Usage</h2>
+    <pre class="bg-light p-3 rounded"><code>&lt;script type="module" src="tenuuki-spin-viewer.js"&gt;&lt;/script&gt;
+
+&lt;tenuuki-spin-viewer
+  data-image-base-url="./frames/box-{i}.webp"
+  data-image-count="60"
+  data-image-number-padding="4"
+  data-replacement-token="i"
+  data-axis="y"
+  data-direction="-1"
+  data-draggable="true"
+  data-initial-spin="true"
+  data-spin-offset="180"
+&gt;&lt;/tenuuki-spin-viewer&gt;</code></pre>
+
+    <script type="module" src="./lib/tenuuki-spin-viewer.js"></script>
+  </body>
+</html>
