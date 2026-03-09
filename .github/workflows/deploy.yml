@@ -30,13 +30,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build library
+        run: npm run build:lib
+
+      - name: Assemble Pages deployment
+        run: |
+          mkdir -p _site/dist
+          cp index.html _site/index.html
+          cp dist/tenuuki-spin-viewer.js _site/dist/
+          cp dist/tenuuki-spin-viewer.css _site/dist/
+          cp -r public/spinner_frames_vertical_box _site/
+          cp -r public/spinner_frames_horizontal_box _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
 
   deploy:
     environment:
