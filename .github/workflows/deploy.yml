@@ -35,12 +35,12 @@ jobs:
 
       - name: Assemble Pages deployment
         run: |
-          mkdir -p _site/dist
+          mkdir -p _site/dist _site/public
           cp index.html _site/index.html
           cp dist/tenuuki-spin-viewer.js _site/dist/
           cp dist/tenuuki-spin-viewer.css _site/dist/
-          cp -r public/spinner_frames_vertical_box _site/
-          cp -r public/spinner_frames_horizontal_box _site/
+          cp -r public/spinner_frames_vertical_box _site/public/
+          cp -r public/spinner_frames_horizontal_box _site/public/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
