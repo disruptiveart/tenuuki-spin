@@ -1,17 +1,26 @@
 {
   "name": "@tenuuki/tenuuki-spin",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "main": "dist/tenuuki-spin-viewer.cjs",
   "module": "dist/tenuuki-spin-viewer.js",
   "unpkg": "dist/tenuuki-spin-viewer.umd.js",
   "jsdelivr": "dist/tenuuki-spin-viewer.umd.js",
+  "files": [
+    "dist/tenuuki-spin-viewer.cjs",
+    "dist/tenuuki-spin-viewer.js",
+    "dist/tenuuki-spin-viewer.umd.js",
+    "dist/tenuuki-spin-viewer.css",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "build:lib": "BUILD_LIB=true vite build",
+    "prepublishOnly": "npm run build:lib",
     "serve:docs": "node serve-docs.js"
   },
   "devDependencies": {
