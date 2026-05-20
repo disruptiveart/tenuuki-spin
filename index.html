@@ -23,7 +23,7 @@
     <h1 class="h4 mb-3">Tenuuki Spin (Library Build)</h1>
 
     <tenuuki-spin-viewer
-      id="viewer"
+      id="viewerVertical"
       data-image-base-url="./public/spinner_frames_vertical_box/box-{i}.webp"
       data-image-count="60"
       data-image-number-padding="4"
@@ -37,7 +37,7 @@
 
 
     <tenuuki-spin-viewer
-      id="viewer"
+      id="viewerHorizontal"
       data-image-base-url="./public/spinner_frames_horizontal_box/box-{frame}.webp"
       data-image-count="60"
       data-image-number-padding="4"
@@ -51,22 +51,13 @@
 
     <div class="btn btn-primary" id="replayBtn">Replay</div>
     <script>
-      // You can also create the viewer programmatically like this:
-      const viewer = document.createElement('tenuuki-spin-viewer');
-      viewer.setAttribute('data-image-base-url', './public/spinner_frames_vertical_box/box-{i}.webp');
-      viewer.setAttribute('data-image-count', '60');
-      viewer.setAttribute('data-image-number-padding', '4');
-      viewer.setAttribute('data-replacement-token', 'i');
-      viewer.setAttribute('data-axis', 'y');
-      viewer.setAttribute('data-direction', '-1');
-      viewer.setAttribute('data-draggable', 'true');
-      viewer.setAttribute('data-initial-spin', 'true');
-      viewer.setAttribute('data-spin-offset', '180');
-      document.body.appendChild(viewer);
+      // Host reference example: call replay() directly on an existing custom element.
+      const viewer = document.getElementById('viewerVertical');
 
       const replayBtn = document.getElementById('replayBtn');
       replayBtn?.addEventListener('click', () => {
-        viewer.replay(2);
+        // replay(rotations, targetFrame?)
+        viewer?.replay(2);
       });
 
     </script>
