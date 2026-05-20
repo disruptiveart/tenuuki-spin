@@ -57,7 +57,7 @@ const markLoaded = (i: number) => {
  * @param rotations: number of full rotations to perform (default: 1)
  * @param i: frame number
  */
-const replay = (rotations: number = 1, i: number | null = null) => {
+export function replay(rotations: number = 1, i: number | null = null) {
   const total = options.images.length
   if (total === 0) return
 
@@ -225,19 +225,13 @@ const handlePointerUp = (e: PointerEvent) => {
 onMount(() => {
   if (!containerElement) return
   const element = containerElement as HTMLElement;
-  const host = element.parentElement as (HTMLElement & {
-    replay?: (rotations?: number, i?: number | null) => void
-  }) | null;
+  const host = (element.closest('tenuuki-spin-viewer') ?? element.parentElement) as HTMLElement | null;
 
   if (!host) {
     return {};
   }
 
-  // Expose imperative API for plain JS usage: element.replay()
-  host.replay = replay
-
   const imageBaseUrl = host.getAttribute('data-image-base-url')
-  console.log("image base: ", imageBaseUrl)
   const imageCount = parseInt(host.getAttribute('data-image-count') || '0', 10)
   const imageNumberPadding = parseInt(host.getAttribute('data-image-number-padding') || '4', 10)
 
@@ -260,7 +254,6 @@ onMount(() => {
   return () => {
     if (spinInterval) clearInterval(spinInterval)
     stopMomentum()
-    delete host.replay
   }
 })
 
