@@ -13,6 +13,7 @@ let frameInterval: number = 60
 let imgElement: HTMLImageElement
 let containerElement: HTMLDivElement
 let spinInterval: ReturnType<typeof setInterval> | undefined
+let loop = false
 
 // ----- Preload -----
 const preloadedImages: HTMLImageElement[] = []
@@ -48,6 +49,43 @@ const markLoaded = (i: number) => {
     loadedCount++
     maybeBeginSpin()
   }
+}
+
+/**
+ * Replays the spin from the current frame. If `i` is provided, it will jump to that frame first before replaying.
+ * `rotations` controls how many full loops to perform before stopping.
+ * @param rotations: number of full rotations to perform (default: 1)
+ * @param i: frame number
+ */
+const replay = (rotations: number = 1, i: number | null = null) => {
+  const total = options.images.length
+  if (total === 0) return
+
+  if (i !== null) {
+    currentFrame = normalizeFrameIndex(i, total)
+    currentFrameFloat = currentFrame
+  }
+
+  const rotationCount = Math.max(0, Math.floor(rotations))
+  if (rotationCount === 0) return
+
+  if (spinInterval) {
+    clearInterval(spinInterval)
+  }
+
+  let stepsRemaining = rotationCount * total
+  
+  spinInterval = setInterval(() => {
+    if (stepsRemaining <= 0) {
+      clearInterval(spinInterval)
+      spinInterval = undefined
+      return
+    }
+
+    currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
+    currentFrameFloat = currentFrame
+    stepsRemaining--
+  }, options.frameInterval ?? frameInterval)
 }
 
 const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
@@ -187,11 +225,16 @@ const handlePointerUp = (e: PointerEvent) => {
 onMount(() => {
   if (!containerElement) return
   const element = containerElement as HTMLElement;
-  const host = element.parentElement;
+  const host = element.parentElement as (HTMLElement & {
+    replay?: (rotations?: number, i?: number | null) => void
+  }) | null;
 
   if (!host) {
     return {};
   }
+
+  // Expose imperative API for plain JS usage: element.replay()
+  host.replay = replay
 
   const imageBaseUrl = host.getAttribute('data-image-base-url')
   console.log("image base: ", imageBaseUrl)
@@ -214,7 +257,11 @@ onMount(() => {
   currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : 0
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
-  return () => { if (spinInterval) clearInterval(spinInterval); stopMomentum() }
+  return () => {
+    if (spinInterval) clearInterval(spinInterval)
+    stopMomentum()
+    delete host.replay
+  }
 })
 
 $: currentSrc = options.images?.[currentFrame] || ''

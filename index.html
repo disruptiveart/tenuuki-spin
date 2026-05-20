@@ -49,6 +49,28 @@
       data-spin-offset="180"
     ></tenuuki-spin-viewer>
 
+    <div class="btn btn-primary" id="replayBtn">Replay</div>
+    <script>
+      // You can also create the viewer programmatically like this:
+      const viewer = document.createElement('tenuuki-spin-viewer');
+      viewer.setAttribute('data-image-base-url', './public/spinner_frames_vertical_box/box-{i}.webp');
+      viewer.setAttribute('data-image-count', '60');
+      viewer.setAttribute('data-image-number-padding', '4');
+      viewer.setAttribute('data-replacement-token', 'i');
+      viewer.setAttribute('data-axis', 'y');
+      viewer.setAttribute('data-direction', '-1');
+      viewer.setAttribute('data-draggable', 'true');
+      viewer.setAttribute('data-initial-spin', 'true');
+      viewer.setAttribute('data-spin-offset', '180');
+      document.body.appendChild(viewer);
+
+      const replayBtn = document.getElementById('replayBtn');
+      replayBtn?.addEventListener('click', () => {
+        viewer.replay(2);
+      });
+
+    </script>
+
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>
