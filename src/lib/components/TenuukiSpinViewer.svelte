@@ -52,7 +52,27 @@ const getRotationCurve = () => {
   return (t: number) => t
 }
 
-const runTimedSpin = (totalSteps: number, onStep: () => void, onComplete?: () => void) => {
+const getCurvedStepDelay = (
+  completedSteps: number,
+  cycleLength: number,
+  baseInterval: number,
+  curve: (t: number) => number
+) => {
+  const safeCycleLength = Math.max(1, cycleLength)
+  const avgProgress = 1 / safeCycleLength
+  const positionInCycle = completedSteps % safeCycleLength
+  const t0 = positionInCycle / safeCycleLength
+  const t1 = (positionInCycle + 1) / safeCycleLength
+  const curvedDelta = Math.max(0.0001, curve(t1) - curve(t0))
+  return Math.max(1, Math.round(baseInterval * (avgProgress / curvedDelta)))
+}
+
+const runTimedSpin = (
+  totalSteps: number,
+  onStep: () => void,
+  onComplete?: () => void,
+  cycleLength: number = totalSteps
+) => {
   if (totalSteps <= 0) {
     onComplete?.()
     return
@@ -60,7 +80,6 @@ const runTimedSpin = (totalSteps: number, onStep: () => void, onComplete?: () =>
 
   const baseInterval = getEffectiveFrameInterval()
   const curve = getRotationCurve()
-  const avgProgress = 1 / totalSteps
   let currentStep = 0
 
   const step = () => {
@@ -85,14 +104,11 @@ const runTimedSpin = (totalSteps: number, onStep: () => void, onComplete?: () =>
       return
     }
 
-    const t0 = currentStep / totalSteps
-    const t1 = (currentStep + 1) / totalSteps
-    const curvedDelta = Math.max(0.0001, curve(t1) - curve(t0))
-    const nextDelay = Math.max(1, Math.round(baseInterval * (avgProgress / curvedDelta)))
+    const nextDelay = getCurvedStepDelay(currentStep, cycleLength, baseInterval, curve)
     spinInterval = setTimeout(step, nextDelay)
   }
 
-  spinInterval = setTimeout(step, baseInterval)
+  spinInterval = setTimeout(step, getCurvedStepDelay(0, cycleLength, baseInterval, curve))
 }
 
 // ----- Image generation -----
@@ -180,7 +196,7 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
   runTimedSpin(steps, () => {
     currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
     currentFrame = Math.floor(currentFrameFloat)
-  })
+  }, undefined, Math.min(total, steps))
 }
 
 /**
@@ -188,15 +204,38 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
  * @param times: number of full rotations to perform before stopping (default: <= 0 for infinite loop)
  */
 export function play(times: number = 0) {
-  if (times <= 0) loop = true;
-  if (spinInterval) return;
+  if (spinInterval) return
 
-  spinInterval = setInterval(() => {
-    const total = options.images.length
-    if (total === 0) return
-    currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
+  const total = options.images.length
+  if (total === 0) return
+
+  stopMomentum()
+  const dir = getSpinDirection()
+  const rotationCount = Math.max(0, Math.floor(times))
+  loop = rotationCount === 0
+  const maxSteps = rotationCount * total
+  const baseInterval = getEffectiveFrameInterval()
+  const curve = getRotationCurve()
+  let stepsCompleted = 0
+
+  const step = () => {
+    if (!loop && stepsCompleted >= maxSteps) {
+      if (spinInterval) {
+        clearInterval(spinInterval)
+        spinInterval = undefined
+      }
+      return
+    }
+
+    currentFrame = normalizeFrameIndex(currentFrame + dir, total)
     currentFrameFloat = currentFrame
-  }, getEffectiveFrameInterval())
+    stepsCompleted++
+
+    const nextDelay = getCurvedStepDelay(stepsCompleted, total, baseInterval, curve)
+    spinInterval = setTimeout(step, nextDelay)
+  }
+
+  spinInterval = setTimeout(step, getCurvedStepDelay(0, total, baseInterval, curve))
 }
 
 export function stop() {
@@ -204,6 +243,14 @@ export function stop() {
     clearInterval(spinInterval)
     spinInterval = undefined
   }
+}
+
+export function isPlaying() {
+  return !!spinInterval
+}
+
+export function spinToStop(i: number, rotations: number = 1) {
+  spinTo(i, rotations, false)
 }
 
 /**
