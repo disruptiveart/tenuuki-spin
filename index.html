@@ -106,7 +106,7 @@
       spinToFrameBtn?.addEventListener('click', () => {
         const frame = parseInt(spinToFrameInput?.value || '0', 10);
         const shortestPath = document.getElementById('spinToShortestPathInput')?.checked;
-        viewer?.spinTo(frame);
+        viewer?.spinTo(frame, 2, shortestPath);
       });
     </script>
 

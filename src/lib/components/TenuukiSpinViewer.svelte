@@ -58,8 +58,22 @@ const markLoaded = (i: number) => {
 export function goTo(i: number) {
   const total = options.images.length
   if (total === 0) return
-  currentFrame = normalizeFrameIndex(i, total)
-  currentFrameFloat = currentFrame
+
+  if (spinInterval) {
+    clearInterval(spinInterval)
+    spinInterval = undefined
+  }
+  stopMomentum()
+
+  const targetFrame = normalizeFrameIndex(i, total)
+  spinInterval = setInterval(() => {
+    currentFrame = targetFrame
+    currentFrameFloat = targetFrame
+    if (spinInterval) {
+      clearInterval(spinInterval)
+      spinInterval = undefined
+    }
+  }, options.frameInterval ?? frameInterval)
 }
 
 /**
@@ -73,6 +87,12 @@ export function goTo(i: number) {
 export function spinTo(i: number, rotations: number = 1, shortestPath: boolean = true) {
   const total = options.images.length
   if (total === 0) return
+
+  if (spinInterval) {
+    clearInterval(spinInterval)
+    spinInterval = undefined
+  }
+  stopMomentum()
 
   const targetFrame = normalizeFrameIndex(i, total)
   const current = normalizeFrameIndex(Math.floor(currentFrameFloat), total)
@@ -99,10 +119,6 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
   }
 
   if (steps === 0) return
-
-  if (spinInterval) {
-    clearInterval(spinInterval)
-  }
 
   let stepsRemaining = steps
   spinInterval = setInterval(() => {
