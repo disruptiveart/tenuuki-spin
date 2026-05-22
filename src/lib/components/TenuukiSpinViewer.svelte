@@ -52,6 +52,17 @@ const markLoaded = (i: number) => {
 }
 
 /**
+ * Allows navigating to a specific frame.
+ * @param i: frame number to navigate to
+ */
+export function goto(i: number) {
+  const total = options.images.length
+  if (total === 0) return
+  currentFrame = normalizeFrameIndex(i, total)
+  currentFrameFloat = currentFrame
+}
+
+/**
  * Replays the spin from the current frame. If `i` is provided, it will jump to that frame first before replaying.
  * `rotations` controls how many full loops to perform before stopping.
  * @param rotations: number of full rotations to perform (default: 1)
