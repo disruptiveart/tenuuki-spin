@@ -18,6 +18,7 @@ type SpinRunner = {
   totalSteps: number
   stepsCompleted: number
   nextStepTime: number
+  lastDelay: number
   baseInterval: number
   cycleLength: number
   curve: (t: number) => number
@@ -53,11 +54,14 @@ const getEffectiveFrameInterval = () => {
   const normalizedBaseInterval = Number.isFinite(baseInterval) && baseInterval > 0 ? baseInterval : frameInterval
   const speedMultiplier = Number(options.speedMultiplier ?? 1)
   const normalizedSpeedMultiplier = Number.isFinite(speedMultiplier) && speedMultiplier > 0 ? speedMultiplier : 1
-  return Math.max(1, Math.round(normalizedBaseInterval / normalizedSpeedMultiplier))
+  return Math.max(0.5, normalizedBaseInterval / normalizedSpeedMultiplier)
 }
 const getRotationCurve = () => {
   const curve = (options.rotationCurve ?? 'linear').toLowerCase()
-  if (curve === 'standard' || curve === 'easeinoutquad') {
+  if (curve === 'standard') {
+    return (t: number) => t * t * (3 - 2 * t)
+  }
+  if (curve === 'easeinoutquad') {
     return (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
   }
   if (curve === 'easeinoutsine') {
@@ -86,7 +90,10 @@ const getCurvedStepDelay = (
   const t0 = positionInCycle / safeCycleLength
   const t1 = (positionInCycle + 1) / safeCycleLength
   const curvedDelta = Math.max(0.0001, curve(t1) - curve(t0))
-  return Math.max(1, Math.round(baseInterval * (avgProgress / curvedDelta)))
+  const rawDelay = baseInterval * (avgProgress / curvedDelta)
+  const minDelay = baseInterval * 0.55
+  const maxDelay = baseInterval * 1.75
+  return Math.max(0.5, Math.min(maxDelay, Math.max(minDelay, rawDelay)))
 }
 
 const startSpin = (
@@ -105,10 +112,12 @@ const startSpin = (
   const baseInterval = getEffectiveFrameInterval()
   const curve = getRotationCurve()
   const normalizedCycleLength = Math.max(1, Math.floor(cycleLength))
+  const initialDelay = getCurvedStepDelay(0, normalizedCycleLength, baseInterval, curve)
   activeSpin = {
     totalSteps,
     stepsCompleted: 0,
-    nextStepTime: performance.now() + getCurvedStepDelay(0, normalizedCycleLength, baseInterval, curve),
+    nextStepTime: performance.now(),
+    lastDelay: initialDelay,
     baseInterval,
     cycleLength: normalizedCycleLength,
     curve,
@@ -134,12 +143,15 @@ const startSpin = (
         break
       }
 
-      activeSpin.nextStepTime += getCurvedStepDelay(
+      const rawDelay = getCurvedStepDelay(
         activeSpin.stepsCompleted,
         activeSpin.cycleLength,
         activeSpin.baseInterval,
         activeSpin.curve
       )
+      const smoothedDelay = activeSpin.lastDelay * 0.6 + rawDelay * 0.4
+      activeSpin.lastDelay = smoothedDelay
+      activeSpin.nextStepTime += smoothedDelay
     }
 
     if (activeSpin && activeSpin.stepsCompleted >= activeSpin.totalSteps) {
