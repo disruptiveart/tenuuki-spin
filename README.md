@@ -66,6 +66,16 @@ Control the viewer:
 </script>
 ```
 
+Animation engine (RAF)
+----------------------
+The viewer uses a requestAnimationFrame (RAF) driven animation loop.
+
+- You do not need to enable this; it is the default engine.
+- API usage is unchanged: goTo, spinTo, play, stop, and replay work the same way.
+- RAF keeps animation updates synchronized with browser paint frames.
+- Easing is applied per rotation cycle for spinTo and play.
+- data-speed-multiplier still controls overall pace and works with easing.
+
 Direct dist usage (no bundler)
 ------------------------------
 Use this mode when serving files directly from your own server.
@@ -150,11 +160,11 @@ The custom element exposes imperative methods on the element instance.
 Spin behavior details
 ---------------------
 - All frame indexing is normalized with modulo arithmetic.
-- goTo and spinTo cancel any active interval before starting new motion.
+- goTo and spinTo cancel any active animation before starting new motion.
 - spinTo shortestPath mode picks the shorter route to the target frame.
 - spinTo linear mode follows configured spin direction and applies full extra rotations.
-- data-speed-multiplier scales frame timing for interval-based spins (for example 2 = faster, 0.5 = slower).
-- data-easing controls animation easing for finite spins. Supported: linear, standard, easeInOutQuad.
+- data-speed-multiplier scales RAF step timing (for example 2 = faster, 0.5 = slower).
+- data-easing controls animation easing. Supported: linear, standard, easeInOutQuad, easeInOutSine.
 
 Data attributes used by host markup
 -----------------------------------

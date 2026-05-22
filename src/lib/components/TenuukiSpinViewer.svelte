@@ -12,8 +12,19 @@ let currentFrameFloat = 0
 let frameInterval: number = 60
 let imgElement: HTMLImageElement
 let containerElement: HTMLDivElement
-let spinInterval: ReturnType<typeof setInterval> | undefined
-let loop = false
+let rafId: number | undefined
+
+type SpinRunner = {
+  totalSteps: number
+  stepsCompleted: number
+  nextStepTime: number
+  baseInterval: number
+  cycleLength: number
+  curve: (t: number) => number
+  onStep: () => void
+  onComplete?: () => void
+}
+let activeSpin: SpinRunner | undefined
 
 // ----- Preload -----
 const preloadedImages: HTMLImageElement[] = []
@@ -49,7 +60,18 @@ const getRotationCurve = () => {
   if (curve === 'standard' || curve === 'easeinoutquad') {
     return (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
   }
+  if (curve === 'easeinoutsine') {
+    return (t: number) => -(Math.cos(Math.PI * t) - 1) / 2
+  }
   return (t: number) => t
+}
+
+const stopSpin = () => {
+  activeSpin = undefined
+  if (rafId !== undefined) {
+    cancelAnimationFrame(rafId)
+    rafId = undefined
+  }
 }
 
 const getCurvedStepDelay = (
@@ -67,48 +89,70 @@ const getCurvedStepDelay = (
   return Math.max(1, Math.round(baseInterval * (avgProgress / curvedDelta)))
 }
 
-const runTimedSpin = (
+const startSpin = (
   totalSteps: number,
   onStep: () => void,
   onComplete?: () => void,
   cycleLength: number = totalSteps
 ) => {
-  if (totalSteps <= 0) {
+  if (Number.isFinite(totalSteps) && totalSteps <= 0) {
     onComplete?.()
     return
   }
 
+  stopSpin()
+
   const baseInterval = getEffectiveFrameInterval()
   const curve = getRotationCurve()
-  let currentStep = 0
-
-  const step = () => {
-    if (currentStep >= totalSteps) {
-      if (spinInterval) {
-        clearInterval(spinInterval)
-        spinInterval = undefined
-      }
-      onComplete?.()
-      return
-    }
-
-    onStep()
-    currentStep++
-
-    if (currentStep >= totalSteps) {
-      if (spinInterval) {
-        clearInterval(spinInterval)
-        spinInterval = undefined
-      }
-      onComplete?.()
-      return
-    }
-
-    const nextDelay = getCurvedStepDelay(currentStep, cycleLength, baseInterval, curve)
-    spinInterval = setTimeout(step, nextDelay)
+  const normalizedCycleLength = Math.max(1, Math.floor(cycleLength))
+  activeSpin = {
+    totalSteps,
+    stepsCompleted: 0,
+    nextStepTime: performance.now() + getCurvedStepDelay(0, normalizedCycleLength, baseInterval, curve),
+    baseInterval,
+    cycleLength: normalizedCycleLength,
+    curve,
+    onStep,
+    onComplete
   }
 
-  spinInterval = setTimeout(step, getCurvedStepDelay(0, cycleLength, baseInterval, curve))
+  const tick = (time: number) => {
+    if (!activeSpin) return
+
+    let stepsThisFrame = 0
+    while (
+      activeSpin &&
+      time >= activeSpin.nextStepTime &&
+      activeSpin.stepsCompleted < activeSpin.totalSteps &&
+      stepsThisFrame < 120
+    ) {
+      activeSpin.onStep()
+      activeSpin.stepsCompleted++
+      stepsThisFrame++
+
+      if (activeSpin.stepsCompleted >= activeSpin.totalSteps) {
+        break
+      }
+
+      activeSpin.nextStepTime += getCurvedStepDelay(
+        activeSpin.stepsCompleted,
+        activeSpin.cycleLength,
+        activeSpin.baseInterval,
+        activeSpin.curve
+      )
+    }
+
+    if (activeSpin && activeSpin.stepsCompleted >= activeSpin.totalSteps) {
+      const onCompleteCallback = activeSpin.onComplete
+      stopSpin()
+      onCompleteCallback?.()
+      return
+    }
+
+    rafId = requestAnimationFrame(tick)
+  }
+
+  rafId = requestAnimationFrame(tick)
 }
 
 // ----- Image generation -----
@@ -132,21 +176,12 @@ export function goTo(i: number) {
   const total = options.images.length
   if (total === 0) return
 
-  if (spinInterval) {
-    clearInterval(spinInterval)
-    spinInterval = undefined
-  }
+  stopSpin()
   stopMomentum()
 
   const targetFrame = normalizeFrameIndex(i, total)
-  spinInterval = setInterval(() => {
-    currentFrame = targetFrame
-    currentFrameFloat = targetFrame
-    if (spinInterval) {
-      clearInterval(spinInterval)
-      spinInterval = undefined
-    }
-  }, getEffectiveFrameInterval())
+  currentFrame = targetFrame
+  currentFrameFloat = targetFrame
 }
 
 /**
@@ -161,10 +196,7 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
   const total = options.images.length
   if (total === 0) return
 
-  if (spinInterval) {
-    clearInterval(spinInterval)
-    spinInterval = undefined
-  }
+  stopSpin()
   stopMomentum()
 
   const targetFrame = normalizeFrameIndex(i, total)
@@ -193,7 +225,7 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
 
   if (steps === 0) return
 
-  runTimedSpin(steps, () => {
+  startSpin(steps, () => {
     currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
     currentFrame = Math.floor(currentFrameFloat)
   }, undefined, Math.min(total, steps))
@@ -204,49 +236,28 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
  * @param times: number of full rotations to perform before stopping (default: <= 0 for infinite loop)
  */
 export function play(times: number = 0) {
-  if (spinInterval) return
-
   const total = options.images.length
   if (total === 0) return
+
+  if (activeSpin) return
 
   stopMomentum()
   const dir = getSpinDirection()
   const rotationCount = Math.max(0, Math.floor(times))
-  loop = rotationCount === 0
-  const maxSteps = rotationCount * total
-  const baseInterval = getEffectiveFrameInterval()
-  const curve = getRotationCurve()
-  let stepsCompleted = 0
+  const maxSteps = rotationCount === 0 ? Number.POSITIVE_INFINITY : rotationCount * total
 
-  const step = () => {
-    if (!loop && stepsCompleted >= maxSteps) {
-      if (spinInterval) {
-        clearInterval(spinInterval)
-        spinInterval = undefined
-      }
-      return
-    }
-
+  startSpin(maxSteps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + dir, total)
     currentFrameFloat = currentFrame
-    stepsCompleted++
-
-    const nextDelay = getCurvedStepDelay(stepsCompleted, total, baseInterval, curve)
-    spinInterval = setTimeout(step, nextDelay)
-  }
-
-  spinInterval = setTimeout(step, getCurvedStepDelay(0, total, baseInterval, curve))
+  }, undefined, total)
 }
 
 export function stop() {
-  if (spinInterval) {
-    clearInterval(spinInterval)
-    spinInterval = undefined
-  }
+  stopSpin()
 }
 
 export function isPlaying() {
-  return !!spinInterval
+  return !!activeSpin
 }
 
 export function spinToStop(i: number, rotations: number = 1) {
@@ -271,12 +282,10 @@ export function replay(rotations: number = 1, i: number | null = null) {
   const rotationCount = Math.max(0, Math.floor(rotations))
   if (rotationCount === 0) return
 
-  if (spinInterval) {
-    clearInterval(spinInterval)
-  }
+  stopSpin()
 
   const steps = rotationCount * total
-  runTimedSpin(steps, () => {
+  startSpin(steps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
     currentFrameFloat = currentFrame
   })
@@ -323,7 +332,7 @@ const getStartFrameFromSpinOffset = () => {
 
 const beginInitialSpinForwardToInitialFrame = () => {
   if (!options.initialSpin) return
-  if (spinInterval) clearInterval(spinInterval)
+  stopSpin()
 
   const total = options.images.length
   const startFrame = getStartFrameFromSpinOffset()
@@ -334,7 +343,7 @@ const beginInitialSpinForwardToInitialFrame = () => {
   currentFrameFloat = startFrame
 
   const steps = normalizeFrameIndex(targetFrame - startFrame, total)
-  runTimedSpin(steps, () => {
+  startSpin(steps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + dir, total)
     currentFrameFloat = currentFrame
   }, () => {
@@ -376,7 +385,7 @@ const handlePointerDown = (e: PointerEvent) => {
   dragStartCoord = getPointerCoord(e)
   dragStartFrame = currentFrameFloat
   lastDragPositions = [{ coord: dragStartCoord, time: performance.now() }]
-  if (spinInterval) { clearInterval(spinInterval); spinInterval = undefined }
+  stopSpin()
   stopMomentum()
   if (imgElement) imgElement.setPointerCapture(e.pointerId)
   window.addEventListener('pointermove', handlePointerMove)
@@ -448,7 +457,7 @@ onMount(() => {
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
   return () => {
-    if (spinInterval) clearInterval(spinInterval)
+    stopSpin()
     stopMomentum()
   }
 })

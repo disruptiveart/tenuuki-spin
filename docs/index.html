@@ -37,9 +37,11 @@
   data-initial-spin="true"
   data-spin-offset="180"
   data-speed-multiplier="1.25"
+  data-easing="standard"
 &gt;&lt;/tenuuki-spin-viewer&gt;</code></pre>
 
     <p class="text-muted">Speed control: <code>data-speed-multiplier</code> uses 1 as default, values above 1 spin faster, and values below 1 spin slower.</p>
+    <p class="text-muted">Animation engine: the component uses <code>requestAnimationFrame</code> internally for smooth frame-synced updates. You can shape motion with <code>data-easing</code> (for example <code>linear</code>, <code>standard</code>, or <code>easeInOutSine</code>).</p>
 
       <tenuuki-spin-viewer
         data-image-base-url="./public/spinner_frames_vertical_box/box-{i}.webp"
@@ -52,6 +54,7 @@
         data-initial-spin="true"
         data-spin-offset="180"
         data-speed-multiplier="1.25"
+        data-easing="standard"
       ></tenuuki-spin-viewer>
 
       <tenuuki-spin-viewer
@@ -65,6 +68,7 @@
         data-initial-spin="true"
         data-spin-offset="180"
         data-speed-multiplier="0.85"
+        data-easing="easeInOutSine"
       ></tenuuki-spin-viewer>
       
     <script type="module" src="./lib/tenuuki-spin-viewer.js"></script>
