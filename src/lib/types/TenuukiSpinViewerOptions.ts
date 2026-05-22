@@ -12,5 +12,8 @@ export interface TenuukiSpinViewerOptions {
 
   // 1-based index of the image to start on. Defaults to 1.
   initialFrame?: number;
+  frameInterval?: number; // milliseconds between frames. Defaults to 60.
+  speedMultiplier?: number; // >1 faster, <1 slower. Defaults to 1.
+  rotationCurve?: 'linear' | 'standard' | 'easeInOutQuad'; // Defaults to linear.
   replacementToken?: string; // default: 'frame'
 }

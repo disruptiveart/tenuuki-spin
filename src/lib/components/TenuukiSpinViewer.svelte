@@ -37,6 +37,63 @@ const VELOCITY_SAMPLES = 2
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
 const getSpinDirection = () => options?.direction === -1 ? 1 : -1
 const getInitialFrameIndex = () => Math.min((options?.initialFrame ?? 1) - 1, options.images.length - 1)
+const getEffectiveFrameInterval = () => {
+  const baseInterval = options.frameInterval ?? frameInterval
+  const normalizedBaseInterval = Number.isFinite(baseInterval) && baseInterval > 0 ? baseInterval : frameInterval
+  const speedMultiplier = Number(options.speedMultiplier ?? 1)
+  const normalizedSpeedMultiplier = Number.isFinite(speedMultiplier) && speedMultiplier > 0 ? speedMultiplier : 1
+  return Math.max(1, Math.round(normalizedBaseInterval / normalizedSpeedMultiplier))
+}
+const getRotationCurve = () => {
+  const curve = (options.rotationCurve ?? 'linear').toLowerCase()
+  if (curve === 'standard' || curve === 'easeinoutquad') {
+    return (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+  }
+  return (t: number) => t
+}
+
+const runTimedSpin = (totalSteps: number, onStep: () => void, onComplete?: () => void) => {
+  if (totalSteps <= 0) {
+    onComplete?.()
+    return
+  }
+
+  const baseInterval = getEffectiveFrameInterval()
+  const curve = getRotationCurve()
+  const avgProgress = 1 / totalSteps
+  let currentStep = 0
+
+  const step = () => {
+    if (currentStep >= totalSteps) {
+      if (spinInterval) {
+        clearInterval(spinInterval)
+        spinInterval = undefined
+      }
+      onComplete?.()
+      return
+    }
+
+    onStep()
+    currentStep++
+
+    if (currentStep >= totalSteps) {
+      if (spinInterval) {
+        clearInterval(spinInterval)
+        spinInterval = undefined
+      }
+      onComplete?.()
+      return
+    }
+
+    const t0 = currentStep / totalSteps
+    const t1 = (currentStep + 1) / totalSteps
+    const curvedDelta = Math.max(0.0001, curve(t1) - curve(t0))
+    const nextDelay = Math.max(1, Math.round(baseInterval * (avgProgress / curvedDelta)))
+    spinInterval = setTimeout(step, nextDelay)
+  }
+
+  spinInterval = setTimeout(step, baseInterval)
+}
 
 // ----- Image generation -----
 const buildImagesFromTemplate = (template: string, count: number, padding: number) =>
@@ -73,7 +130,7 @@ export function goTo(i: number) {
       clearInterval(spinInterval)
       spinInterval = undefined
     }
-  }, options.frameInterval ?? frameInterval)
+  }, getEffectiveFrameInterval())
 }
 
 /**
@@ -120,18 +177,10 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
 
   if (steps === 0) return
 
-  let stepsRemaining = steps
-  spinInterval = setInterval(() => {
-    if (stepsRemaining <= 0) {
-      clearInterval(spinInterval)
-      spinInterval = undefined
-      return
-    }
-
+  runTimedSpin(steps, () => {
     currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
     currentFrame = Math.floor(currentFrameFloat)
-    stepsRemaining--
-  }, options.frameInterval ?? frameInterval)
+  })
 }
 
 /**
@@ -147,7 +196,7 @@ export function play(times: number = 0) {
     if (total === 0) return
     currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
     currentFrameFloat = currentFrame
-  }, options.frameInterval ?? frameInterval)
+  }, getEffectiveFrameInterval())
 }
 
 export function stop() {
@@ -179,19 +228,11 @@ export function replay(rotations: number = 1, i: number | null = null) {
     clearInterval(spinInterval)
   }
 
-  let stepsRemaining = rotationCount * total
-  
-  spinInterval = setInterval(() => {
-    if (stepsRemaining <= 0) {
-      clearInterval(spinInterval)
-      spinInterval = undefined
-      return
-    }
-
+  const steps = rotationCount * total
+  runTimedSpin(steps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
     currentFrameFloat = currentFrame
-    stepsRemaining--
-  }, options.frameInterval ?? frameInterval)
+  })
 }
 
 const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
@@ -245,14 +286,14 @@ const beginInitialSpinForwardToInitialFrame = () => {
   currentFrame = startFrame
   currentFrameFloat = startFrame
 
-  spinInterval = setInterval(() => {
+  const steps = normalizeFrameIndex(targetFrame - startFrame, total)
+  runTimedSpin(steps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + dir, total)
     currentFrameFloat = currentFrame
-    if (currentFrame === targetFrame) {
-      clearInterval(spinInterval)
-      spinInterval = undefined
-    }
-  }, options.frameInterval ?? frameInterval)
+  }, () => {
+    currentFrame = targetFrame
+    currentFrameFloat = targetFrame
+  })
 }
 
 // ----- Momentum -----
@@ -348,6 +389,8 @@ onMount(() => {
   options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
   options.initialFrame = parseInt(host.getAttribute('data-initial-frame') || '1', 10)
   options.frameInterval = 60
+  options.speedMultiplier = parseFloat(host.getAttribute('data-speed-multiplier') || '1')
+  options.rotationCurve = host.getAttribute('data-easing') || 'linear'
   options.replacementToken = host.getAttribute('data-replacement-token') || 'frame'
 
   if (imageBaseUrl && imageCount > 0) {

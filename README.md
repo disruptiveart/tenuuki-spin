@@ -42,6 +42,8 @@ Add markup:
 	data-initial-spin="true"
 	data-initial-frame="1"
 	data-spin-offset="180"
+	data-speed-multiplier="1.5"
+	data-easing="standard"
 ></tenuuki-spin-viewer>
 ```
 
@@ -151,6 +153,8 @@ Spin behavior details
 - goTo and spinTo cancel any active interval before starting new motion.
 - spinTo shortestPath mode picks the shorter route to the target frame.
 - spinTo linear mode follows configured spin direction and applies full extra rotations.
+- data-speed-multiplier scales frame timing for interval-based spins (for example 2 = faster, 0.5 = slower).
+- data-easing controls animation easing for finite spins. Supported: linear, standard, easeInOutQuad.
 
 Data attributes used by host markup
 -----------------------------------
@@ -164,6 +168,8 @@ Data attributes used by host markup
 - data-initial-spin
 - data-initial-frame
 - data-spin-offset
+- data-speed-multiplier
+- data-easing
 
 Release workflow
 ----------------

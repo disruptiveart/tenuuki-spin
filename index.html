@@ -21,6 +21,7 @@
   </head>
   <body class="p-4">
     <h1 class="h4 mb-3">Tenuuki Spin (Library Build)</h1>
+    <p class="text-muted">Use <code>data-speed-multiplier</code> to control spin speed (for example: 2 = faster, 0.5 = slower).</p>
 
     <tenuuki-spin-viewer
       id="viewerVertical"
@@ -34,6 +35,8 @@
       data-draggable="true"
       data-initial-spin="true"
       data-spin-offset="180"
+      data-speed-multiplier="1.5"
+      data-easing="easeInOutQuad"
     ></tenuuki-spin-viewer>
 
 
@@ -48,7 +51,9 @@
       data-draggable="true"
       data-initial-spin="true"
       data-initial-frame="20"
+      data-easing="easeInOutSine"
       data-spin-offset="180"
+      data-speed-multiplier="0.9"
     ></tenuuki-spin-viewer>
 
 
