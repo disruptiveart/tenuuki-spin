@@ -51,17 +51,63 @@
       data-spin-offset="180"
     ></tenuuki-spin-viewer>
 
-    <div class="btn btn-primary" id="replayBtn">Replay</div>
+
+    <div class="row flex-columns-md mt-4 g-3">
+      <div class="col">
+       <div class="btn btn-primary" id="play">Play</div>
+      <input type="number" id="playRotationsInput" class="form-control d-inline-block w-auto" placeholder="Rotations" />
+     </div>
+     <div class="col">
+       <div class="btn btn-primary" id="stop">Stop</div>
+       <div class="btn btn-primary" id="replayBtn">Replay</div>
+      </div>
+      <div class="col">
+        <div class="btn btn-primary" id="gotoFrameBtn">Go to Frame</div>
+        <input type="number" id="frameInput" class="form-control d-inline-block w-auto" placeholder="Frame #" />
+      </div>
+      <div class="col">
+        <div class="btn btn-primary" id="spinToFrameBtn">Spin to Frame</div>
+        <input type="number" id="spinToFrameInput" class="form-control d-inline-block w-auto" placeholder="Frame #" />
+        <input type="checkbox" id="spinToShortestPathInput" class="form-check-input" />
+        <label for="spinToShortestPathInput" class="form-check-label">Shortest Path
+      </div>
+    </div>
     <script>
       // Host reference example: call replay() directly on an existing custom element.
       const viewer = document.getElementById('viewerVertical');
 
       const replayBtn = document.getElementById('replayBtn');
+      const playRotationsInput = document.getElementById('playRotationsInput');
       replayBtn?.addEventListener('click', () => {
+        const rotations = parseInt(playRotationsInput?.value || '1', 10);
         // replay(rotations, targetFrame?)
-        viewer?.replay(2);
+        viewer?.replay(rotations);
       });
 
+      const gotoFrameBtn = document.getElementById('gotoFrameBtn');
+      const frameInput = document.getElementById('frameInput');
+      gotoFrameBtn?.addEventListener('click', () => {
+        const frame = parseInt(frameInput?.value || '0', 10);
+        viewer?.goTo(frame);
+      });
+
+      const stopBtn = document.getElementById('stop');
+      stopBtn?.addEventListener('click', () => {
+        viewer?.stop();
+      });
+
+      const playBtn = document.getElementById('play');
+      playBtn?.addEventListener('click', () => {
+        viewer?.play();
+      });
+
+      const spinToFrameBtn = document.getElementById('spinToFrameBtn');
+      const spinToFrameInput = document.getElementById('spinToFrameInput');
+      spinToFrameBtn?.addEventListener('click', () => {
+        const frame = parseInt(spinToFrameInput?.value || '0', 10);
+        const shortestPath = document.getElementById('spinToShortestPathInput')?.checked;
+        viewer?.spinTo(frame);
+      });
     </script>
 
     <script type="module" src="./src/main.ts"></script>

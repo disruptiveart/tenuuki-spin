@@ -52,14 +52,93 @@ const markLoaded = (i: number) => {
 }
 
 /**
- * Allows navigating to a specific frame.
+ * Allows navigating to a specific frame directly. If the viewer is currently auto-spinning or in the middle of an animated spin, it will stop and jump to the specified frame immediately.
  * @param i: frame number to navigate to
  */
-export function goto(i: number) {
+export function goTo(i: number) {
   const total = options.images.length
   if (total === 0) return
   currentFrame = normalizeFrameIndex(i, total)
   currentFrameFloat = currentFrame
+}
+
+/**
+ * Animates spinning to a specific frame from the current frame.
+ * By default it performs a linear spin in the configured direction.
+ * Set `shortestPath` to true to take the shortest route to the target frame.
+ * @param i: target frame number
+ * @param rotations: extra full loops before stopping (linear mode)
+ * @param shortestPath: when true, ignore extra rotations and move via shortest route
+ */
+export function spinTo(i: number, rotations: number = 1, shortestPath: boolean = true) {
+  const total = options.images.length
+  if (total === 0) return
+
+  const targetFrame = normalizeFrameIndex(i, total)
+  const current = normalizeFrameIndex(Math.floor(currentFrameFloat), total)
+  const linearDir = getSpinDirection()
+
+  const forwardSteps = normalizeFrameIndex(targetFrame - current, total)
+  const backwardSteps = normalizeFrameIndex(current - targetFrame, total)
+
+  let dir = linearDir
+  let steps = 0
+
+  if (shortestPath) {
+    if (forwardSteps <= backwardSteps) {
+      dir = 1
+      steps = forwardSteps
+    } else {
+      dir = -1
+      steps = backwardSteps
+    }
+  } else {
+    const linearSteps = linearDir === 1 ? forwardSteps : backwardSteps
+    const extraRotations = Math.max(0, Math.floor(rotations))
+    steps = linearSteps + extraRotations * total
+  }
+
+  if (steps === 0) return
+
+  if (spinInterval) {
+    clearInterval(spinInterval)
+  }
+
+  let stepsRemaining = steps
+  spinInterval = setInterval(() => {
+    if (stepsRemaining <= 0) {
+      clearInterval(spinInterval)
+      spinInterval = undefined
+      return
+    }
+
+    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
+    currentFrame = Math.floor(currentFrameFloat)
+    stepsRemaining--
+  }, options.frameInterval ?? frameInterval)
+}
+
+/**
+ * Starts auto-spinning the viewer. If already spinning, this function does nothing. The spin will continue indefinitely until `stop()` is called or the user interacts with the viewer (e.g. dragging).
+ * @param times: number of full rotations to perform before stopping (default: <= 0 for infinite loop)
+ */
+export function play(times: number = 0) {
+  if (times <= 0) loop = true;
+  if (spinInterval) return;
+
+  spinInterval = setInterval(() => {
+    const total = options.images.length
+    if (total === 0) return
+    currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
+    currentFrameFloat = currentFrame
+  }, options.frameInterval ?? frameInterval)
+}
+
+export function stop() {
+  if (spinInterval) {
+    clearInterval(spinInterval)
+    spinInterval = undefined
+  }
 }
 
 /**
