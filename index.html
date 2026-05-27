@@ -17,6 +17,11 @@
         width: 300px;
         height: 300px;
       }
+
+      #viewer {
+        width: 600px;
+        height: 600px;
+      }
     </style>
   </head>
   <body class="p-4">
@@ -32,11 +37,13 @@
       data-replacement-token="i"
       data-axis="y"
       data-direction="-1"
+      data-initial-spin-direction="-1"
       data-draggable="true"
       data-initial-spin="true"
       data-spin-offset="180"
       data-speed-multiplier="1.5"
       data-easing="easeInOutQuad"
+      data-easing-scope="full"
     ></tenuuki-spin-viewer>
 
 
@@ -48,14 +55,33 @@
       data-image-number-padding="4"
       data-axis="x"
       data-direction="-1"
+      data-initial-spin-direction="1"
       data-draggable="true"
       data-initial-spin="true"
       data-initial-frame="20"
       data-easing="easeInOutSine"
       data-spin-offset="180"
       data-speed-multiplier="0.9"
+      data-easing-scope="single"
     ></tenuuki-spin-viewer>
 
+    <tenuuki-spin-viewer
+      id="viewer"
+      class="product-3d-container"data-image-number-padding="0"
+      data-axis="x"
+      data-direction="1"
+      data-draggable="true"
+      data-initial-spin="true"
+      data-initial-frame="4"
+      data-initial-spin-direction="-1"
+      data-image-base-url="https://sailuntire.ca/360/AT2/SAILUN-TERRAMAX-AT2-{i}.webp"
+      data-image-count="48"
+      data-replacement-token="i"
+      data-spin-offset="360"
+      data-speed-multiplier="3"
+      data-easing="easeInOutBounce"
+      data-easing-scope="full"
+    ></tenuuki-spin-viewer>
 
     <div class="row flex-columns-md mt-4 g-3">
       <div class="col">

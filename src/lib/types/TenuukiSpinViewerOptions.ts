@@ -3,7 +3,7 @@ export interface TenuukiSpinViewerOptions {
   axis?: 'x' | 'y'; // default: 'x'
   direction?: 1 | -1; // default: 1
   initialSpin?: boolean;
-  initialSpinDirection?: 1 | -1; // default: 1
+  initialSpinDirection?: 1 | -1; // defaults to direction when omitted.
   spinOffset?: number; // degrees to offset the initial spin by. Defaults to 0.
   
   draggable?: boolean;
@@ -14,6 +14,7 @@ export interface TenuukiSpinViewerOptions {
   initialFrame?: number;
   frameInterval?: number; // milliseconds between frames. Defaults to 60.
   speedMultiplier?: number; // >1 faster, <1 slower. Defaults to 1.
-  rotationCurve?: 'linear' | 'standard' | 'easeInOutQuad'; // Defaults to linear.
+  rotationCurve?: 'linear' | 'standard' | 'easeInOutQuad' | 'easeInOutSine'; // Defaults to linear.
+  easingScope?: 'single' | 'full'; // single: per 360deg cycle, full: entire spin duration.
   replacementToken?: string; // default: 'frame'
 }

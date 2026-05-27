@@ -38,6 +38,7 @@ Add markup:
 	data-replacement-token="frame"
 	data-axis="x"
 	data-direction="-1"
+	data-initial-spin-direction="-1"
 	data-draggable="true"
 	data-initial-spin="true"
 	data-initial-frame="1"
@@ -73,7 +74,7 @@ The viewer uses a requestAnimationFrame (RAF) driven animation loop.
 - You do not need to enable this; it is the default engine.
 - API usage is unchanged: goTo, spinTo, play, stop, and replay work the same way.
 - RAF keeps animation updates synchronized with browser paint frames.
-- Easing is applied per rotation cycle for spinTo and play.
+- Easing scope is configurable with data-easing-scope (single per 360deg cycle, full across total spin).
 - data-speed-multiplier still controls overall pace and works with easing.
 
 Direct dist usage (no bundler)
@@ -163,8 +164,11 @@ Spin behavior details
 - goTo and spinTo cancel any active animation before starting new motion.
 - spinTo shortestPath mode picks the shorter route to the target frame.
 - spinTo linear mode follows configured spin direction and applies full extra rotations.
+- data-spin-offset supports values above 360 to include full extra rotations during initial spin.
+- data-initial-spin-direction controls the direction used only for initial spin pathing and defaults to data-direction.
 - data-speed-multiplier scales RAF step timing (for example 2 = faster, 0.5 = slower).
 - data-easing controls animation easing. Supported: linear, standard, easeInOutQuad, easeInOutSine.
+- data-easing-scope controls easing timing span: single applies easing per 360deg cycle, full applies easing across the entire spin.
 
 Data attributes used by host markup
 -----------------------------------
@@ -174,12 +178,14 @@ Data attributes used by host markup
 - data-replacement-token
 - data-axis
 - data-direction
+- data-initial-spin-direction
 - data-draggable
 - data-initial-spin
 - data-initial-frame
 - data-spin-offset
 - data-speed-multiplier
 - data-easing
+- data-easing-scope
 
 Release workflow
 ----------------

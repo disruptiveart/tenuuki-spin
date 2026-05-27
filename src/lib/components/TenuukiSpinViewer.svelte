@@ -3,7 +3,7 @@
 <script lang="ts">
 import { onMount } from 'svelte'
 import '../styles/spin-viewer.scss'
-import type { TenuukiSpinViewerOptions } from '$lib/types/TenuukiSpinViewerOptions'
+import type { TenuukiSpinViewerOptions } from '../types/TenuukiSpinViewerOptions'
 
 // ----- Spinner state -----
 export let options: TenuukiSpinViewerOptions = { images: [] } as TenuukiSpinViewerOptions
@@ -47,7 +47,9 @@ const VELOCITY_SAMPLES = 2
 
 // ----- Utilities -----
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
-const getSpinDirection = () => options?.direction === -1 ? 1 : -1
+const getDirectionStep = (direction: 1 | -1 | undefined) => direction === -1 ? 1 : -1
+const getSpinDirection = () => getDirectionStep(options?.direction)
+const getInitialSpinDirection = () => getDirectionStep(options?.initialSpinDirection ?? options?.direction)
 const getInitialFrameIndex = () => Math.min((options?.initialFrame ?? 1) - 1, options.images.length - 1)
 const getEffectiveFrameInterval = () => {
   const baseInterval = options.frameInterval ?? frameInterval
@@ -55,6 +57,13 @@ const getEffectiveFrameInterval = () => {
   const speedMultiplier = Number(options.speedMultiplier ?? 1)
   const normalizedSpeedMultiplier = Number.isFinite(speedMultiplier) && speedMultiplier > 0 ? speedMultiplier : 1
   return Math.max(0.5, normalizedBaseInterval / normalizedSpeedMultiplier)
+}
+const getEasingScope = () => (options.easingScope ?? 'single') === 'full' ? 'full' : 'single'
+const getCycleLengthForEasing = (totalSteps: number, totalFrames: number) => {
+  if (!Number.isFinite(totalSteps) || totalSteps <= 0) return Math.max(1, totalFrames)
+  const normalizedSteps = Math.max(1, Math.floor(totalSteps))
+  if (getEasingScope() === 'full') return normalizedSteps
+  return Math.min(Math.max(1, totalFrames), normalizedSteps)
 }
 const getRotationCurve = () => {
   const curve = (options.rotationCurve ?? 'linear').toLowerCase()
@@ -240,7 +249,7 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
   startSpin(steps, () => {
     currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
     currentFrame = Math.floor(currentFrameFloat)
-  }, undefined, Math.min(total, steps))
+  }, undefined, getCycleLengthForEasing(steps, total))
 }
 
 /**
@@ -261,7 +270,7 @@ export function play(times: number = 0) {
   startSpin(maxSteps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + dir, total)
     currentFrameFloat = currentFrame
-  }, undefined, total)
+  }, undefined, getCycleLengthForEasing(maxSteps, total))
 }
 
 export function stop() {
@@ -300,7 +309,7 @@ export function replay(rotations: number = 1, i: number | null = null) {
   startSpin(steps, () => {
     currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
     currentFrameFloat = currentFrame
-  })
+  }, undefined, getCycleLengthForEasing(steps, total))
 }
 
 const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
@@ -326,20 +335,44 @@ const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
 const maybeBeginSpin = () => {
   if (spinStarted || !options.initialSpin) return
   const total = options.images.length
-  const startFrame = getStartFrameFromSpinOffset()
-  const targetFrame = getInitialFrameIndex()
+  const plan = getInitialSpinPlan()
   let ready = true
-  for (let i = startFrame; i !== normalizeFrameIndex(targetFrame + getSpinDirection(), total); i = normalizeFrameIndex(i + getSpinDirection(), total)) {
-    if (!loadedFlags[i]) { ready = false; break }
+  for (let step = 0; step <= plan.steps; step++) {
+    const frame = normalizeFrameIndex(plan.startFrame + plan.dir * step, total)
+    if (!loadedFlags[frame]) {
+      ready = false
+      break
+    }
   }
   if (ready) { spinStarted = true; beginInitialSpinForwardToInitialFrame() }
 }
 
-const getStartFrameFromSpinOffset = () => {
+const getInitialSpinPlan = () => {
   const total = options.images.length
   const target = getInitialFrameIndex()
-  const offsetFrames = Math.round(((options.spinOffset ?? 0) % 360) / 360 * total)
-  return normalizeFrameIndex(target - offsetFrames, total)
+  const configuredDir = getInitialSpinDirection()
+  const spinOffset = Number(options.spinOffset ?? 0)
+  const offsetFrames = Math.round((spinOffset / 360) * total)
+
+  if (offsetFrames === 0) {
+    return {
+      startFrame: target,
+      targetFrame: target,
+      steps: 0,
+      dir: configuredDir
+    }
+  }
+
+  const dir = offsetFrames >= 0 ? configuredDir : -configuredDir
+  const steps = Math.abs(offsetFrames)
+  const startFrame = normalizeFrameIndex(target - dir * steps, total)
+
+  return {
+    startFrame,
+    targetFrame: target,
+    steps,
+    dir
+  }
 }
 
 const beginInitialSpinForwardToInitialFrame = () => {
@@ -347,21 +380,18 @@ const beginInitialSpinForwardToInitialFrame = () => {
   stopSpin()
 
   const total = options.images.length
-  const startFrame = getStartFrameFromSpinOffset()
-  const targetFrame = getInitialFrameIndex()
-  const dir = getSpinDirection()
+  const plan = getInitialSpinPlan()
 
-  currentFrame = startFrame
-  currentFrameFloat = startFrame
+  currentFrame = plan.startFrame
+  currentFrameFloat = plan.startFrame
 
-  const steps = normalizeFrameIndex(targetFrame - startFrame, total)
-  startSpin(steps, () => {
-    currentFrame = normalizeFrameIndex(currentFrame + dir, total)
+  startSpin(plan.steps, () => {
+    currentFrame = normalizeFrameIndex(currentFrame + plan.dir, total)
     currentFrameFloat = currentFrame
   }, () => {
-    currentFrame = targetFrame
-    currentFrameFloat = targetFrame
-  })
+    currentFrame = plan.targetFrame
+    currentFrameFloat = plan.targetFrame
+  }, getCycleLengthForEasing(plan.steps, total))
 }
 
 // ----- Momentum -----
@@ -452,6 +482,12 @@ onMount(() => {
 
   options.axis = host.getAttribute('data-axis') === 'y' ? 'y' : 'x'
   options.direction = host.getAttribute('data-direction') === '-1' ? -1 : 1
+  const initialSpinDirectionAttribute = host.getAttribute('data-initial-spin-direction')
+  options.initialSpinDirection = initialSpinDirectionAttribute === '-1'
+    ? -1
+    : initialSpinDirectionAttribute === '1'
+      ? 1
+      : options.direction
   options.draggable = host.getAttribute('data-draggable') !== 'false'
   options.initialSpin = host.getAttribute('data-initial-spin') !== 'false'
   options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
@@ -459,13 +495,14 @@ onMount(() => {
   options.frameInterval = 60
   options.speedMultiplier = parseFloat(host.getAttribute('data-speed-multiplier') || '1')
   options.rotationCurve = host.getAttribute('data-easing') || 'linear'
+  options.easingScope = host.getAttribute('data-easing-scope') === 'full' ? 'full' : 'single'
   options.replacementToken = host.getAttribute('data-replacement-token') || 'frame'
 
   if (imageBaseUrl && imageCount > 0) {
     options.images = buildImagesFromTemplate(imageBaseUrl, imageCount, imageNumberPadding)
   }
 
-  currentFrame = options.initialSpin ? getStartFrameFromSpinOffset() : 0
+  currentFrame = options.initialSpin ? getInitialSpinPlan().startFrame : 0
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
   return () => {

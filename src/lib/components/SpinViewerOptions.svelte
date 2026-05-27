@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import type { TenuukiSpinViewerOptions } from '$lib/types/TenuukiSpinViewerOptions'
+  import type { TenuukiSpinViewerOptions } from '../types/TenuukiSpinViewerOptions'
 
   export let options: TenuukiSpinViewerOptions
 
