@@ -14,7 +14,7 @@ export interface TenuukiSpinViewerOptions {
   initialFrame?: number;
   frameInterval?: number; // milliseconds between frames. Defaults to 60.
   speedMultiplier?: number; // >1 faster, <1 slower. Defaults to 1.
-  rotationCurve?: 'linear' | 'standard' | 'easeInOutQuad' | 'easeInOutSine'; // Defaults to linear.
+  rotationCurve?: string; // easings.net names, CSS presets (ease/ease-in/ease-out/ease-in-out), or cubic-bezier(...)
   easingScope?: 'single' | 'full'; // single: per 360deg cycle, full: entire spin duration.
   replacementToken?: string; // default: 'frame'
 }

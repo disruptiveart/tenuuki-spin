@@ -2,6 +2,7 @@
 
 <script lang="ts">
 import { onMount } from 'svelte'
+import BezierEasing from 'bezier-easing'
 import '../styles/spin-viewer.scss'
 import type { TenuukiSpinViewerOptions } from '../types/TenuukiSpinViewerOptions'
 
@@ -16,13 +17,14 @@ let rafId: number | undefined
 
 type SpinRunner = {
   totalSteps: number
-  stepsCompleted: number
-  nextStepTime: number
-  lastDelay: number
-  baseInterval: number
+  baseIntervalMs: number
   cycleLength: number
   curve: (t: number) => number
-  onStep: () => void
+  maxStepDeltaPerTick: number
+  startedAt: number
+  appliedSteps: number
+  isInfinite: boolean
+  onStep: (stepCount: number) => void
   onComplete?: () => void
 }
 let activeSpin: SpinRunner | undefined
@@ -65,18 +67,161 @@ const getCycleLengthForEasing = (totalSteps: number, totalFrames: number) => {
   if (getEasingScope() === 'full') return normalizedSteps
   return Math.min(Math.max(1, totalFrames), normalizedSteps)
 }
+const CSS_BEZIER_PRESETS: Record<string, [number, number, number, number]> = {
+  ease: [0.25, 0.1, 0.25, 1],
+  'ease-in': [0.42, 0, 1, 1],
+  'ease-out': [0, 0, 0.58, 1],
+  'ease-in-out': [0.42, 0, 0.58, 1]
+}
+
+const parseBezierEasing = (value: string) => {
+  const preset = CSS_BEZIER_PRESETS[value]
+  if (preset) {
+    return BezierEasing(...preset)
+  }
+
+  const match = value.match(/^cubic-bezier\(\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*\)$/i)
+  if (!match) return null
+
+  const x1 = Number(match[1])
+  const y1 = Number(match[2])
+  const x2 = Number(match[3])
+  const y2 = Number(match[4])
+  if (!Number.isFinite(x1) || !Number.isFinite(y1) || !Number.isFinite(x2) || !Number.isFinite(y2)) {
+    return null
+  }
+
+  try {
+    return BezierEasing(x1, y1, x2, y2)
+  } catch {
+    return null
+  }
+}
+
+const easeOutBounce = (t: number) => {
+  const n1 = 7.5625
+  const d1 = 2.75
+
+  if (t < 1 / d1) return n1 * t * t
+  if (t < 2 / d1) {
+    const x = t - 1.5 / d1
+    return n1 * x * x + 0.75
+  }
+  if (t < 2.5 / d1) {
+    const x = t - 2.25 / d1
+    return n1 * x * x + 0.9375
+  }
+
+  const x = t - 2.625 / d1
+  return n1 * x * x + 0.984375
+}
+
+const EASINGS_NET_CURVES: Record<string, (t: number) => number> = {
+  linear: (t: number) => t,
+  easeinquad: (t: number) => t * t,
+  easeoutquad: (t: number) => 1 - Math.pow(1 - t, 2),
+  easeinoutquad: (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
+  easeincubic: (t: number) => t * t * t,
+  easeoutcubic: (t: number) => 1 - Math.pow(1 - t, 3),
+  easeinoutcubic: (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  easeinquart: (t: number) => t * t * t * t,
+  easeoutquart: (t: number) => 1 - Math.pow(1 - t, 4),
+  easeinoutquart: (t: number) => (t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2),
+  easeinquint: (t: number) => t * t * t * t * t,
+  easeoutquint: (t: number) => 1 - Math.pow(1 - t, 5),
+  easeinoutquint: (t: number) => (t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2),
+  easeinsine: (t: number) => 1 - Math.cos((t * Math.PI) / 2),
+  easeoutsine: (t: number) => Math.sin((t * Math.PI) / 2),
+  easeinoutsine: (t: number) => -(Math.cos(Math.PI * t) - 1) / 2,
+  easeinexpo: (t: number) => (t === 0 ? 0 : Math.pow(2, 10 * t - 10)),
+  easeoutexpo: (t: number) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeinoutexpo: (t: number) => {
+    if (t === 0) return 0
+    if (t === 1) return 1
+    return t < 0.5
+      ? Math.pow(2, 20 * t - 10) / 2
+      : (2 - Math.pow(2, -20 * t + 10)) / 2
+  },
+  easeincirc: (t: number) => 1 - Math.sqrt(1 - Math.pow(t, 2)),
+  easeoutcirc: (t: number) => Math.sqrt(1 - Math.pow(t - 1, 2)),
+  easeinoutcirc: (t: number) => {
+    return t < 0.5
+      ? (1 - Math.sqrt(1 - Math.pow(2 * t, 2))) / 2
+      : (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1) / 2
+  },
+  easeinback: (t: number) => {
+    const c1 = 1.70158
+    const c3 = c1 + 1
+    return c3 * t * t * t - c1 * t * t
+  },
+  easeoutback: (t: number) => {
+    const c1 = 1.70158
+    const c3 = c1 + 1
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+  },
+  easeinoutback: (t: number) => {
+    const c1 = 1.70158
+    const c2 = c1 * 1.525
+    return t < 0.5
+      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (2 * t - 2) + c2) + 2) / 2
+  },
+  easeinelastic: (t: number) => {
+    const c4 = (2 * Math.PI) / 3
+    if (t === 0) return 0
+    if (t === 1) return 1
+    return -Math.pow(2, 10 * t - 10) * Math.sin((t * 10 - 10.75) * c4)
+  },
+  easeoutelastic: (t: number) => {
+    const c4 = (2 * Math.PI) / 3
+    if (t === 0) return 0
+    if (t === 1) return 1
+    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1
+  },
+  easeinoutelastic: (t: number) => {
+    const c5 = (2 * Math.PI) / 4.5
+    if (t === 0) return 0
+    if (t === 1) return 1
+    return t < 0.5
+      ? -(Math.pow(2, 20 * t - 10) * Math.sin((20 * t - 11.125) * c5)) / 2
+      : (Math.pow(2, -20 * t + 10) * Math.sin((20 * t - 11.125) * c5)) / 2 + 1
+  },
+  easeinbounce: (t: number) => 1 - easeOutBounce(1 - t),
+  easeoutbounce: easeOutBounce,
+  easeinoutbounce: (t: number) => {
+    return t < 0.5
+      ? (1 - easeOutBounce(1 - 2 * t)) / 2
+      : (1 + easeOutBounce(2 * t - 1)) / 2
+  }
+}
+
+const getNormalizedCurveName = () => (options.rotationCurve ?? 'linear').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
 const getRotationCurve = () => {
-  const curve = (options.rotationCurve ?? 'linear').toLowerCase()
+  const rawCurve = (options.rotationCurve ?? 'linear').trim()
+  const curve = rawCurve.toLowerCase()
+
+  const bezierCurve = parseBezierEasing(curve)
+  if (bezierCurve) {
+    return bezierCurve
+  }
+
   if (curve === 'standard') {
     return (t: number) => t * t * (3 - 2 * t)
   }
-  if (curve === 'easeinoutquad') {
-    return (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
-  }
-  if (curve === 'easeinoutsine') {
-    return (t: number) => -(Math.cos(Math.PI * t) - 1) / 2
-  }
+
+  const normalizedCurve = getNormalizedCurveName()
+  const easingsNetCurve = EASINGS_NET_CURVES[normalizedCurve]
+  if (easingsNetCurve) return easingsNetCurve
+
   return (t: number) => t
+}
+
+const getMaxStepDeltaPerTick = (curveName: string, totalFrames: number) => {
+  const baseCap = Math.max(1, Math.ceil(totalFrames / 24))
+  if (curveName.includes('bounce')) return Math.min(2, baseCap)
+  if (curveName.includes('elastic')) return Math.min(3, Math.max(2, baseCap))
+  return Math.max(4, baseCap)
 }
 
 const stopSpin = () => {
@@ -87,49 +232,68 @@ const stopSpin = () => {
   }
 }
 
-const getCurvedStepDelay = (
-  completedSteps: number,
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
+
+const getEasedStepsForCycles = (
+  linearSteps: number,
   cycleLength: number,
-  baseInterval: number,
   curve: (t: number) => number
 ) => {
-  const safeCycleLength = Math.max(1, cycleLength)
-  const avgProgress = 1 / safeCycleLength
-  const positionInCycle = completedSteps % safeCycleLength
-  const t0 = positionInCycle / safeCycleLength
-  const t1 = (positionInCycle + 1) / safeCycleLength
-  const curvedDelta = Math.max(0.0001, curve(t1) - curve(t0))
-  const rawDelay = baseInterval * (avgProgress / curvedDelta)
-  const minDelay = baseInterval * 0.55
-  const maxDelay = baseInterval * 1.75
-  return Math.max(0.5, Math.min(maxDelay, Math.max(minDelay, rawDelay)))
+  if (cycleLength <= 1) return linearSteps
+  const safeLinearSteps = Math.max(0, linearSteps)
+  const completeCycles = Math.floor(safeLinearSteps / cycleLength)
+  const cycleProgress = (safeLinearSteps - completeCycles * cycleLength) / cycleLength
+  const easedCycleProgress = clamp01(curve(clamp01(cycleProgress)))
+  return completeCycles * cycleLength + easedCycleProgress * cycleLength
+}
+
+const getSpinTargetSteps = (spin: SpinRunner, now: number) => {
+  const elapsedMs = Math.max(0, now - spin.startedAt)
+  const linearSteps = elapsedMs / spin.baseIntervalMs
+
+  if (spin.isInfinite) {
+    return Math.floor(getEasedStepsForCycles(linearSteps, spin.cycleLength, spin.curve))
+  }
+
+  const cappedLinearSteps = Math.min(spin.totalSteps, linearSteps)
+  if (spin.cycleLength >= spin.totalSteps) {
+    const progress = spin.totalSteps <= 0 ? 1 : clamp01(cappedLinearSteps / spin.totalSteps)
+    const easedProgress = clamp01(spin.curve(progress))
+    return Math.floor(easedProgress * spin.totalSteps)
+  }
+
+  return Math.floor(Math.min(spin.totalSteps, getEasedStepsForCycles(cappedLinearSteps, spin.cycleLength, spin.curve)))
 }
 
 const startSpin = (
   totalSteps: number,
-  onStep: () => void,
+  onStep: (stepCount: number) => void,
   onComplete?: () => void,
   cycleLength: number = totalSteps
 ) => {
-  if (Number.isFinite(totalSteps) && totalSteps <= 0) {
+  const finiteSteps = Number.isFinite(totalSteps) ? Math.max(0, Math.floor(totalSteps)) : Number.POSITIVE_INFINITY
+  if (Number.isFinite(finiteSteps) && finiteSteps <= 0) {
     onComplete?.()
     return
   }
 
   stopSpin()
 
-  const baseInterval = getEffectiveFrameInterval()
+  const baseIntervalMs = getEffectiveFrameInterval()
+  const curveName = getNormalizedCurveName()
   const curve = getRotationCurve()
-  const normalizedCycleLength = Math.max(1, Math.floor(cycleLength))
-  const initialDelay = getCurvedStepDelay(0, normalizedCycleLength, baseInterval, curve)
+  const normalizedCycleLength = Math.max(1, Math.floor(Number.isFinite(cycleLength) ? cycleLength : 1))
+  const maxStepDeltaPerTick = getMaxStepDeltaPerTick(curveName, options.images.length)
+
   activeSpin = {
-    totalSteps,
-    stepsCompleted: 0,
-    nextStepTime: performance.now(),
-    lastDelay: initialDelay,
-    baseInterval,
+    totalSteps: finiteSteps,
+    baseIntervalMs,
     cycleLength: normalizedCycleLength,
     curve,
+    maxStepDeltaPerTick,
+    startedAt: performance.now(),
+    appliedSteps: 0,
+    isInfinite: !Number.isFinite(finiteSteps),
     onStep,
     onComplete
   }
@@ -137,33 +301,15 @@ const startSpin = (
   const tick = (time: number) => {
     if (!activeSpin) return
 
-    let stepsThisFrame = 0
-    while (
-      activeSpin &&
-      time >= activeSpin.nextStepTime &&
-      activeSpin.stepsCompleted < activeSpin.totalSteps &&
-      stepsThisFrame < 120
-    ) {
-      activeSpin.onStep()
-      activeSpin.stepsCompleted++
-      stepsThisFrame++
-
-      if (activeSpin.stepsCompleted >= activeSpin.totalSteps) {
-        break
-      }
-
-      const rawDelay = getCurvedStepDelay(
-        activeSpin.stepsCompleted,
-        activeSpin.cycleLength,
-        activeSpin.baseInterval,
-        activeSpin.curve
-      )
-      const smoothedDelay = activeSpin.lastDelay * 0.6 + rawDelay * 0.4
-      activeSpin.lastDelay = smoothedDelay
-      activeSpin.nextStepTime += smoothedDelay
+    const targetSteps = getSpinTargetSteps(activeSpin, time)
+    const stepDelta = targetSteps - activeSpin.appliedSteps
+    if (stepDelta > 0) {
+      const appliedDelta = Math.min(stepDelta, activeSpin.maxStepDeltaPerTick)
+      activeSpin.onStep(appliedDelta)
+      activeSpin.appliedSteps += appliedDelta
     }
 
-    if (activeSpin && activeSpin.stepsCompleted >= activeSpin.totalSteps) {
+    if (!activeSpin.isInfinite && activeSpin.appliedSteps >= activeSpin.totalSteps) {
       const onCompleteCallback = activeSpin.onComplete
       stopSpin()
       onCompleteCallback?.()
@@ -246,8 +392,8 @@ export function spinTo(i: number, rotations: number = 1, shortestPath: boolean =
 
   if (steps === 0) return
 
-  startSpin(steps, () => {
-    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir, total)
+  startSpin(steps, (stepCount) => {
+    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + dir * stepCount, total)
     currentFrame = Math.floor(currentFrameFloat)
   }, undefined, getCycleLengthForEasing(steps, total))
 }
@@ -267,8 +413,8 @@ export function play(times: number = 0) {
   const rotationCount = Math.max(0, Math.floor(times))
   const maxSteps = rotationCount === 0 ? Number.POSITIVE_INFINITY : rotationCount * total
 
-  startSpin(maxSteps, () => {
-    currentFrame = normalizeFrameIndex(currentFrame + dir, total)
+  startSpin(maxSteps, (stepCount) => {
+    currentFrame = normalizeFrameIndex(currentFrame + dir * stepCount, total)
     currentFrameFloat = currentFrame
   }, undefined, getCycleLengthForEasing(maxSteps, total))
 }
@@ -306,8 +452,9 @@ export function replay(rotations: number = 1, i: number | null = null) {
   stopSpin()
 
   const steps = rotationCount * total
-  startSpin(steps, () => {
-    currentFrame = normalizeFrameIndex(currentFrame + getSpinDirection(), total)
+  const dir = getSpinDirection()
+  startSpin(steps, (stepCount) => {
+    currentFrame = normalizeFrameIndex(currentFrame + dir * stepCount, total)
     currentFrameFloat = currentFrame
   }, undefined, getCycleLengthForEasing(steps, total))
 }
@@ -385,8 +532,8 @@ const beginInitialSpinForwardToInitialFrame = () => {
   currentFrame = plan.startFrame
   currentFrameFloat = plan.startFrame
 
-  startSpin(plan.steps, () => {
-    currentFrame = normalizeFrameIndex(currentFrame + plan.dir, total)
+  startSpin(plan.steps, (stepCount) => {
+    currentFrame = normalizeFrameIndex(currentFrame + plan.dir * stepCount, total)
     currentFrameFloat = currentFrame
   }, () => {
     currentFrame = plan.targetFrame

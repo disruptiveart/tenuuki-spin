@@ -167,7 +167,7 @@ Spin behavior details
 - data-spin-offset supports values above 360 to include full extra rotations during initial spin.
 - data-initial-spin-direction controls the direction used only for initial spin pathing and defaults to data-direction.
 - data-speed-multiplier scales RAF step timing (for example 2 = faster, 0.5 = slower).
-- data-easing controls animation easing. Supported: linear, standard, easeInOutQuad, easeInOutSine.
+- data-easing controls animation easing. Supported: all standard easings.net names (for example easeInOutCubic, easeOutBounce, easeInElastic), legacy standard alias, CSS presets (ease, ease-in, ease-out, ease-in-out), and cubic-bezier(x1, y1, x2, y2).
 - data-easing-scope controls easing timing span: single applies easing per 360deg cycle, full applies easing across the entire spin.
 
 Data attributes used by host markup
