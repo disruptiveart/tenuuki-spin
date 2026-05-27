@@ -10,6 +10,8 @@ type FrameChangePayload = {
   image_name: string
   index: number
   angle: number
+  id?: string
+  ref?: HTMLElement
 }
 
 // ----- Spinner state -----
@@ -260,7 +262,9 @@ const emitFrameChange = () => {
   const payload: FrameChangePayload = {
     image_name: getImageName(imageSrc),
     index,
-    angle: (index / total) * 360
+    angle: (index / total) * 360,
+    ref: hostElement ?? undefined,
+    ...(hostElement?.id ? { id: hostElement.id } : {})
   }
 
   const hostCallback = (hostElement as any)?.onFrameChange
@@ -716,7 +720,13 @@ onMount(() => {
 
   const imageBaseUrl = host.getAttribute('data-image-base-url')
   const imageCount = parseInt(host.getAttribute('data-image-count') || '0', 10)
-  const imageNumberPadding = parseInt(host.getAttribute('data-image-number-padding') || '4', 10)
+  const rawImageNumberPadding = host.getAttribute('data-image-number-padding')
+  const parsedImageNumberPadding = rawImageNumberPadding === null || rawImageNumberPadding.trim() === ''
+    ? 0
+    : parseInt(rawImageNumberPadding, 10)
+  const imageNumberPadding = Number.isFinite(parsedImageNumberPadding) && parsedImageNumberPadding >= 0
+    ? parsedImageNumberPadding
+    : 0
 
   options.axis = host.getAttribute('data-axis') === 'y' ? 'y' : 'x'
   options.direction = host.getAttribute('data-direction') === '-1' ? -1 : 1
@@ -751,7 +761,11 @@ onMount(() => {
 })
 
 $: currentSrc = options.images?.[currentFrame] || ''
-$: emitFrameChange()
+$: {
+  currentFrame
+  hostElement
+  emitFrameChange()
+}
 </script>
 
 <div class="tenuuki-spin-viewer" bind:this={containerElement}>

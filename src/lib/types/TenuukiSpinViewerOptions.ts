@@ -2,6 +2,8 @@ export interface TenuukiSpinViewerFrameChangePayload {
   image_name: string;
   index: number;
   angle: number;
+  id?: string;
+  ref?: HTMLElement;
 }
 
 export interface TenuukiSpinViewerOptions {
