@@ -64,6 +64,17 @@ Control the viewer:
 	viewer?.play()
 	viewer?.stop()
 	viewer?.replay(1)
+
+	// Frame-change callback property on the custom element.
+	viewer.onFrameChange = ({ image_name, index, angle }) => {
+		console.log(image_name, index, angle)
+	}
+
+	// Equivalent DOM event.
+	viewer?.addEventListener('framechange', (event) => {
+		const payload = event.detail
+		console.log(payload.image_name, payload.index, payload.angle)
+	})
 </script>
 ```
 
@@ -157,6 +168,8 @@ The custom element exposes imperative methods on the element instance.
 - play(times = 0): Starts auto-spin.
 - stop(): Stops active auto-spin.
 - replay(rotations = 1, i = null): Replays a fixed number of rotations.
+- onFrameChange(payload): Optional callback property invoked when visible frame index changes.
+- framechange event: Dispatched with detail { image_name, index, angle } on frame changes.
 
 Spin behavior details
 ---------------------

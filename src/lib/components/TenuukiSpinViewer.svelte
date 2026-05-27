@@ -6,6 +6,12 @@ import BezierEasing from 'bezier-easing'
 import '../styles/spin-viewer.scss'
 import type { TenuukiSpinViewerOptions } from '../types/TenuukiSpinViewerOptions'
 
+type FrameChangePayload = {
+  image_name: string
+  index: number
+  angle: number
+}
+
 // ----- Spinner state -----
 export let options: TenuukiSpinViewerOptions = { images: [] } as TenuukiSpinViewerOptions
 let currentFrame = 0
@@ -13,7 +19,9 @@ let currentFrameFloat = 0
 let frameInterval: number = 60
 let imgElement: HTMLImageElement
 let containerElement: HTMLDivElement
+let hostElement: HTMLElement | null = null
 let rafId: number | undefined
+let lastFrameChangeKey = ''
 
 type SpinRunner = {
   totalSteps: number
@@ -39,6 +47,8 @@ let spinStarted = false
 let isDragging = false
 let dragStartCoord = 0
 let dragStartFrame = 0
+let latestPointerCoord = 0
+let dragRafId: number | undefined
 const DRAG_SENSITIVITY = 2.5
 
 let velocity = 0
@@ -49,6 +59,14 @@ const VELOCITY_SAMPLES = 2
 
 // ----- Utilities -----
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
+const getShortestFrameDelta = (from: number, to: number, total: number) => {
+  const direct = to - from
+  const plusWrap = direct + total
+  const minusWrap = direct - total
+  if (Math.abs(plusWrap) < Math.abs(direct) && Math.abs(plusWrap) <= Math.abs(minusWrap)) return plusWrap
+  if (Math.abs(minusWrap) < Math.abs(direct) && Math.abs(minusWrap) < Math.abs(plusWrap)) return minusWrap
+  return direct
+}
 const getDirectionStep = (direction: 1 | -1 | undefined) => direction === -1 ? 1 : -1
 const getSpinDirection = () => getDirectionStep(options?.direction)
 const getInitialSpinDirection = () => getDirectionStep(options?.initialSpinDirection ?? options?.direction)
@@ -215,6 +233,46 @@ const getRotationCurve = () => {
   if (easingsNetCurve) return easingsNetCurve
 
   return (t: number) => t
+}
+
+const getImageName = (imageSrc: string) => {
+  if (!imageSrc) return ''
+  try {
+    const parsed = new URL(imageSrc, 'http://localhost')
+    const lastSegment = parsed.pathname.split('/').pop() || imageSrc
+    return decodeURIComponent(lastSegment)
+  } catch {
+    const lastSegment = imageSrc.split('/').pop() || imageSrc
+    return decodeURIComponent(lastSegment)
+  }
+}
+
+const emitFrameChange = () => {
+  const total = options.images.length
+  if (total === 0) return
+
+  const index = normalizeFrameIndex(currentFrame, total)
+  const imageSrc = options.images[index] || ''
+  const key = `${total}:${index}:${imageSrc}`
+  if (key === lastFrameChangeKey) return
+  lastFrameChangeKey = key
+
+  const payload: FrameChangePayload = {
+    image_name: getImageName(imageSrc),
+    index,
+    angle: (index / total) * 360
+  }
+
+  const hostCallback = (hostElement as any)?.onFrameChange
+  if (typeof hostCallback === 'function') {
+    hostCallback(payload)
+  }
+
+  if (typeof options.onFrameChange === 'function') {
+    options.onFrameChange(payload)
+  }
+
+  hostElement?.dispatchEvent(new CustomEvent('framechange', { detail: payload }))
 }
 
 const getMaxStepDeltaPerTick = (curveName: string, totalFrames: number) => {
@@ -552,15 +610,31 @@ const startMomentum = () => {
   const total = options.images.length
   if (total === 0 || Math.abs(velocity) < 0.1) return
 
+  let physicsFrameFloat = currentFrameFloat
+  let renderFrameFloat = currentFrameFloat
   let lastTime = performance.now()
   const step = (time: number) => {
-    const dt = (time - lastTime) / 1000
+    const rawDt = (time - lastTime) / 1000
+    const dt = Math.min(1 / 30, Math.max(1 / 240, rawDt || 1 / 60))
     lastTime = time
-    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + velocity * dt, total)
+
+    physicsFrameFloat = normalizeFrameIndex(physicsFrameFloat + velocity * dt, total)
+    const follow = 1 - Math.exp(-dt * 28)
+    const frameDelta = getShortestFrameDelta(renderFrameFloat, physicsFrameFloat, total)
+    renderFrameFloat = normalizeFrameIndex(renderFrameFloat + frameDelta * follow, total)
+
+    currentFrameFloat = renderFrameFloat
     currentFrame = Math.floor(currentFrameFloat)
     velocity *= Math.pow(MOMENTUM_FRICTION, dt * 60)
-    if (Math.abs(velocity) >= 0.01) momentumId = requestAnimationFrame(step)
-    else momentumId = undefined
+
+    if (Math.abs(velocity) >= 0.01) {
+      momentumId = requestAnimationFrame(step)
+      return
+    }
+
+    currentFrameFloat = physicsFrameFloat
+    currentFrame = Math.floor(currentFrameFloat)
+    momentumId = undefined
   }
   momentumId = requestAnimationFrame(step)
 }
@@ -572,6 +646,7 @@ const handlePointerDown = (e: PointerEvent) => {
   if (options.draggable === false) return
   isDragging = true
   dragStartCoord = getPointerCoord(e)
+  latestPointerCoord = dragStartCoord
   dragStartFrame = currentFrameFloat
   lastDragPositions = [{ coord: dragStartCoord, time: performance.now() }]
   stopSpin()
@@ -582,19 +657,34 @@ const handlePointerDown = (e: PointerEvent) => {
   window.addEventListener('pointercancel', handlePointerUp)
 }
 
-const handlePointerMove = (e: PointerEvent) => {
+const processDragFrame = () => {
+  dragRafId = undefined
   if (!isDragging) return
   const total = options.images.length
-  const pointerCoord = getPointerCoord(e)
-  const delta = (pointerCoord - dragStartCoord) * getSpinDirection()
+  if (total === 0) return
+  const delta = (latestPointerCoord - dragStartCoord) * getSpinDirection()
   currentFrameFloat = normalizeFrameIndex(dragStartFrame + delta / DRAG_SENSITIVITY, total)
   currentFrame = Math.floor(currentFrameFloat)
-  lastDragPositions.push({ coord: pointerCoord, time: performance.now() })
+  lastDragPositions.push({ coord: latestPointerCoord, time: performance.now() })
   if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
+}
+
+const handlePointerMove = (e: PointerEvent) => {
+  if (!isDragging) return
+  latestPointerCoord = getPointerCoord(e)
+  if (dragRafId === undefined) {
+    dragRafId = requestAnimationFrame(processDragFrame)
+  }
 }
 
 const handlePointerUp = (e: PointerEvent) => {
   if (!isDragging) return
+  latestPointerCoord = getPointerCoord(e)
+  if (dragRafId !== undefined) {
+    cancelAnimationFrame(dragRafId)
+    dragRafId = undefined
+  }
+  processDragFrame()
   isDragging = false
   window.removeEventListener('pointermove', handlePointerMove)
   window.removeEventListener('pointerup', handlePointerUp)
@@ -622,6 +712,7 @@ onMount(() => {
   if (!host) {
     return {};
   }
+  hostElement = host
 
   const imageBaseUrl = host.getAttribute('data-image-base-url')
   const imageCount = parseInt(host.getAttribute('data-image-count') || '0', 10)
@@ -653,12 +744,14 @@ onMount(() => {
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
   return () => {
+    hostElement = null
     stopSpin()
     stopMomentum()
   }
 })
 
 $: currentSrc = options.images?.[currentFrame] || ''
+$: emitFrameChange()
 </script>
 
 <div class="tenuuki-spin-viewer" bind:this={containerElement}>

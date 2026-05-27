@@ -1,3 +1,9 @@
+export interface TenuukiSpinViewerFrameChangePayload {
+  image_name: string;
+  index: number;
+  angle: number;
+}
+
 export interface TenuukiSpinViewerOptions {
   images: ReadonlyArray<string>;
   axis?: 'x' | 'y'; // default: 'x'
@@ -16,5 +22,6 @@ export interface TenuukiSpinViewerOptions {
   speedMultiplier?: number; // >1 faster, <1 slower. Defaults to 1.
   rotationCurve?: string; // easings.net names, CSS presets (ease/ease-in/ease-out/ease-in-out), or cubic-bezier(...)
   easingScope?: 'single' | 'full'; // single: per 360deg cycle, full: entire spin duration.
+  onFrameChange?: (payload: TenuukiSpinViewerFrameChangePayload) => void;
   replacementToken?: string; // default: 'frame'
 }
