@@ -36,5 +36,9 @@
   },
   "dependencies": {
     "bezier-easing": "^3.2.0"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.5.1": true,
+    "fsevents@2.3.3": true
   }
 }
