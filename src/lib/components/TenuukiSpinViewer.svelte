@@ -2,6 +2,7 @@
 
 <script lang="ts">
 import { onMount } from 'svelte'
+import { portal } from '../utils/portal'
 import '../styles/spin-viewer.scss'
 import type { TenuukiSpinViewerOptions } from '../types/TenuukiSpinViewerOptions'
 import { defaultTenuukiSpinAnimationAdapter } from '../types/TenuukiSpinAnimationAdapter'
@@ -203,9 +204,10 @@ const handleArrowClick = (event: MouseEvent, delta: number) => {
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
-  const bounds = containerElement.getBoundingClientRect()
-  contextMenuX = Math.min(event.clientX - bounds.left, Math.max(0, bounds.width - 150))
-  contextMenuY = Math.min(event.clientY - bounds.top, Math.max(0, bounds.height - 40))
+  const maxX = window.scrollX + window.innerWidth - 150
+  const maxY = window.scrollY + window.innerHeight - 40
+  contextMenuX = Math.min(event.pageX, Math.max(window.scrollX, maxX))
+  contextMenuY = Math.min(event.pageY, Math.max(window.scrollY, maxY))
   contextMenuVisible = true
   window.addEventListener('pointerdown', closeContextMenu, { once: true })
   window.addEventListener('blur', closeContextMenu, { once: true })
@@ -644,13 +646,15 @@ $: {
   {/if}
   {#if contextMenuVisible}
     <div
+      use:portal
       class="tenuuki-spin-context-menu"
       style="left: {contextMenuX}px; top: {contextMenuY}px;"
       role="menu"
       tabindex="-1"
       on:pointerdown|stopPropagation
     >
-      <span role="menuitem">version: {__TENUUKI_SPIN_VERSION__}</span>
+      <div class="tenuuki-spin-context-menu-item" role="menuitem">version: {__TENUUKI_SPIN_VERSION__}</div>
+      <div class="tenuuki-spin-context-menu-item" role="menuitem">website: <a href="https://disruptiveart.com?utm_source=tenuuki-spin" target="_blank">Disruptive Art Studio</a></div>
     </div>
   {/if}
   {#if isLoading}
