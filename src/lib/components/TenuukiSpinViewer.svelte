@@ -43,6 +43,8 @@ let activeSpin: SpinRunner | undefined
 const preloadedImages: HTMLImageElement[] = []
 const loadedFlags: boolean[] = []
 let loadedCount = 0
+let loadFailedCount = 0
+let preloadCancelled = false
 let spinStarted = false
 
 // ----- Drag / Momentum -----
@@ -389,10 +391,11 @@ const buildImagesFromTemplate = (template: string, count: number, padding: numbe
   Array.from({ length: count }, (_, i) => template.replace(`{${options.replacementToken}}`, String(i + 1).padStart(padding, '0')))
 
 // ----- Preload -----
-const markLoaded = (i: number) => {
+const markLoaded = (i: number, failed = false) => {
   if (!loadedFlags[i]) {
     loadedFlags[i] = true
     loadedCount++
+    if (failed) loadFailedCount++
     maybeBeginSpin()
   }
 }
@@ -411,6 +414,11 @@ export function goTo(i: number) {
   const targetFrame = normalizeFrameIndex(i, total)
   currentFrame = targetFrame
   currentFrameFloat = targetFrame
+}
+
+const handleArrowClick = (event: MouseEvent, delta: number) => {
+  event.stopPropagation()
+  goTo(Math.floor(currentFrameFloat) + delta)
 }
 
 /**
@@ -521,23 +529,47 @@ export function replay(rotations: number = 1, i: number | null = null) {
   }, undefined, getCycleLengthForEasing(steps, total))
 }
 
-const preloadImagesProgressive = (chunkSize = 10, delay = 50) => {
-  let index = 0
+const preloadImagesProgressive = () => {
+  const total = options.images.length
+  const firstFrame = normalizeFrameIndex(getInitialSpinPlan().startFrame, total)
+  const priorityFrames = [firstFrame, getInitialFrameIndex()]
+  const queue = [...new Set([
+    ...priorityFrames,
+    ...Array.from({ length: total }, (_, index) => index)
+  ])]
+  const connection = (navigator as Navigator & {
+    connection?: { effectiveType?: string; saveData?: boolean }
+  }).connection
+  const constrained = connection?.saveData === true || /(^|-)2g$/.test(connection?.effectiveType ?? '')
+  const concurrency = constrained ? 2 : 4
+  let activeRequests = 0
+  let nextIndex = 0
 
-  const loadChunk = () => {
-    for (let i = index; i < index + chunkSize && i < options.images.length; i++) {
+  const pump = () => {
+    if (preloadCancelled) return
+    while (activeRequests < concurrency && nextIndex < queue.length) {
+      const frame = queue[nextIndex++]
+      if (loadedFlags[frame]) continue
+
+      activeRequests++
       const img = new Image()
-      loadedFlags[i] = false
-      img.onload = () => markLoaded(i)
-      img.onerror = () => { console.warn(`[TenuukiSpinViewer] Failed to load image ${i}`); markLoaded(i) }
-      img.src = options.images[i]
-      preloadedImages[i] = img
+      img.decoding = 'async'
+      img.fetchPriority = nextIndex <= priorityFrames.length ? 'high' : 'low'
+      const settle = (failed: boolean) => {
+        if (preloadCancelled) return
+        activeRequests--
+        if (failed) console.warn(`[TenuukiSpinViewer] Failed to load image ${frame}`)
+        markLoaded(frame, failed)
+        pump()
+      }
+      img.onload = () => settle(false)
+      img.onerror = () => settle(true)
+      img.src = options.images[frame]
+      preloadedImages[frame] = img
     }
-    index += chunkSize
-    if (index < options.images.length) setTimeout(loadChunk, delay)
   }
 
-  loadChunk()
+  pump()
 }
 
 // ----- Initial Spin -----
@@ -756,6 +788,8 @@ onMount(() => {
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
   return () => {
+    preloadCancelled = true
+    for (const img of preloadedImages) img.src = ''
     hostElement = null
     stopSpin()
     stopMomentum()
@@ -763,6 +797,9 @@ onMount(() => {
 })
 
 $: currentSrc = options.images?.[currentFrame] || ''
+$: loadTotal = options.images?.length ?? 0
+$: loadingPercent = loadTotal > 0 ? Math.round((loadedCount / loadTotal) * 100) : 0
+$: isLoading = loadTotal > 0 && loadedCount < loadTotal
 $: {
   currentFrame
   hostElement
@@ -796,17 +833,32 @@ $: {
       <button
         class="left-spin-arrow"
         type="button"
-        aria-label="Spin left"
-        on:click={() => goTo(currentFrame - 1)}
-      >&#8249;</button>
+        aria-label={options.axis === 'y' ? 'Spin up' : 'Spin left'}
+        on:click={(event) => handleArrowClick(event, -1)}
+      >{options.axis === 'y' ? '↑' : '←'}</button>
       <button
         class="right-spin-arrow"
         type="button"
-        aria-label="Spin right"
-        on:click={() => goTo(currentFrame + 1)}
-      >&#8250;</button>
+        aria-label={options.axis === 'y' ? 'Spin down' : 'Spin right'}
+        on:click={(event) => handleArrowClick(event, 1)}
+      >{options.axis === 'y' ? '↓' : '→'}</button>
     {/if}
   {:else}
     <p>Loading...</p>
+  {/if}
+  {#if isLoading}
+    <div
+      class:loading-has-errors={loadFailedCount > 0}
+      class="tenuuki-spin-loading"
+      role="progressbar"
+      aria-label="Loading spin frames"
+      aria-valuemin="0"
+      aria-valuemax={loadTotal}
+      aria-valuenow={loadedCount}
+      aria-valuetext={`${loadingPercent}% loaded`}
+    >
+      <span class="tenuuki-spin-loading-indicator" aria-hidden="true"></span>
+      <span>{loadingPercent}%</span>
+    </div>
   {/if}
 </div>

@@ -4,6 +4,35 @@
   height: 100%;
   overflow: hidden;
 
+  .tenuuki-spin-loading {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 65%);
+    color: white;
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+
+  .tenuuki-spin-loading-indicator {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgb(255 255 255 / 35%);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: tenuuki-spin-loading 0.8s linear infinite;
+  }
+
+  .loading-has-errors {
+    background: rgb(120 0 0 / 70%);
+  }
+
   img {
     width: 100%;
     height: 100%;
@@ -62,5 +91,17 @@
 
   .right-spin-arrow {
     right: 0.5rem;
+  }
+}
+
+@keyframes tenuuki-spin-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tenuuki-spin-viewer .tenuuki-spin-loading-indicator {
+    animation: none;
   }
 }
