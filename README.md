@@ -40,6 +40,8 @@ Add markup:
 	data-direction="-1"
 	data-initial-spin-direction="-1"
 	data-draggable="true"
+	data-show-arrows="true"
+	data-show-rotation-hints="true"
 	data-initial-spin="true"
 	data-initial-frame="1"
 	data-spin-offset="180"
@@ -193,6 +195,8 @@ Data attributes used by host markup
 - data-direction
 - data-initial-spin-direction
 - data-draggable
+- data-show-arrows
+- data-show-rotation-hints
 - data-initial-spin
 - data-initial-frame
 - data-spin-offset

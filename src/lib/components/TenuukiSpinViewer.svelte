@@ -737,6 +737,8 @@ onMount(() => {
       ? 1
       : options.direction
   options.draggable = host.getAttribute('data-draggable') !== 'false'
+  options.showArrows = host.getAttribute('data-show-arrows') === 'true'
+  options.showRotationHints = host.getAttribute('data-show-rotation-hints') === 'true'
   options.initialSpin = host.getAttribute('data-initial-spin') !== 'false'
   options.spinOffset = parseInt(host.getAttribute('data-spin-offset') || '0', 10)
   options.initialFrame = parseInt(host.getAttribute('data-initial-frame') || '1', 10)
@@ -782,6 +784,28 @@ $: {
       "
       on:pointerdown={handlePointerDown}
     />
+    {#if options.showRotationHints}
+      <span class="left-hint-arrow" aria-hidden="true">
+        {options.axis === 'y' ? '↑' : '←'}
+      </span>
+      <span class="right-hint-arrow" aria-hidden="true">
+        {options.axis === 'y' ? '↓' : '→'}
+      </span>
+    {/if}
+    {#if options.showArrows}
+      <button
+        class="left-spin-arrow"
+        type="button"
+        aria-label="Spin left"
+        on:click={() => goTo(currentFrame - 1)}
+      >&#8249;</button>
+      <button
+        class="right-spin-arrow"
+        type="button"
+        aria-label="Spin right"
+        on:click={() => goTo(currentFrame + 1)}
+      >&#8250;</button>
+    {/if}
   {:else}
     <p>Loading...</p>
   {/if}

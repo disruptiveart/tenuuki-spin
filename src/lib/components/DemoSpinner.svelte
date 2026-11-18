@@ -30,6 +30,8 @@
   export let direction: 1 | -1 = 1
   export let initialSpinDirection: 1 | -1 | undefined = undefined
   export let draggable = true
+  export let showArrows = false
+  export let showRotationHints = false
   export let initialSpin = true
   export let initialFrame = 1
   export let spinOffset = 0
@@ -61,6 +63,8 @@
     direction,
     initialSpinDirection,
     draggable,
+    showArrows,
+    showRotationHints,
     initialSpin,
     initialFrame,
     spinOffset,
@@ -103,6 +107,8 @@
       data-direction={String(direction)}
       data-initial-spin-direction={initialSpinDirection === undefined ? undefined : String(initialSpinDirection)}
       data-draggable={String(draggable)}
+      data-show-arrows={String(showArrows)}
+      data-show-rotation-hints={String(showRotationHints)}
       data-initial-spin={String(initialSpin)}
       data-initial-frame={String(initialFrame)}
       data-spin-offset={String(spinOffset)}
@@ -235,8 +241,18 @@
     </label>
 
     <label class="check-row">
+      <input type="checkbox" bind:checked={showArrows} />
+      Show arrows
+    </label>
+
+    <label class="check-row">
+      <input type="checkbox" bind:checked={showRotationHints} />
+      Show rotation hints
+    </label>
+
+    <label class="check-row">
       <input type="checkbox" bind:checked={initialSpin} />
-      Initial Spin
+      Initial spin
     </label>
 
     <label class="check-row">

@@ -13,4 +13,54 @@
     user-drag: none;
     -webkit-touch-callout: none;
   }
+
+  .left-hint-arrow,
+  .right-hint-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    color: rgb(255 255 255 / 80%);
+    font-size: 2rem;
+    line-height: 1;
+    pointer-events: none;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 65%);
+    transform: translateY(-50%);
+  }
+
+  .left-hint-arrow {
+    left: 1rem;
+  }
+
+  .right-hint-arrow {
+    right: 1rem;
+  }
+
+  .left-spin-arrow,
+  .right-spin-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 45%);
+    color: white;
+    font: inherit;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+
+  .left-spin-arrow {
+    left: 0.5rem;
+  }
+
+  .right-spin-arrow {
+    right: 0.5rem;
+  }
 }
