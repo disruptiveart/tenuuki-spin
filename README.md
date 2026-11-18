@@ -157,6 +157,7 @@ Project layout
 - src/lib/components/TenuukiSpinViewer.svelte: Main custom element implementation.
 - src/lib/tenuuki-spin-viewer.ts: Library entry that registers the component.
 - src/lib/types/TenuukiSpinViewerOptions.ts: Public options interface.
+- src/lib/types/TenuukiSpinAnimationAdapter.ts: Animation scheduler adapter interface and default RAF implementation.
 - public/: Local sample frame assets.
 - docs/: Documentation site assets.
 - scripts/: Frame/object generation helpers.
@@ -172,6 +173,9 @@ The custom element exposes imperative methods on the element instance.
 - replay(rotations = 1, i = null): Replays a fixed number of rotations.
 - onFrameChange(payload): Optional callback property invoked when visible frame index changes.
 - framechange event: Dispatched with detail { image_name, index, angle } on frame changes.
+- animationAdapter: Optional engine implementing `{ start(request) => stop }`. The request includes total steps, cycle length, frame interval, frame count, easing name, and update/completion callbacks.
+
+A GSAP or Anime.js adapter can animate its own numeric timeline and call `request.onUpdate(stepDelta)` with integer frame deltas, then `request.onComplete()` when finite. The returned stop function must immediately cancel that engine-specific animation. The exported `defaultTenuukiSpinAnimationAdapter` owns the existing RAF scheduling, easing, and frame calculations.
 
 Spin behavior details
 ---------------------

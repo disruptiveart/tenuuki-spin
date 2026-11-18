@@ -1,3 +1,5 @@
+import type { TenuukiSpinAnimationAdapter } from './TenuukiSpinAnimationAdapter'
+
 export interface TenuukiSpinViewerFrameChangePayload {
   image_name: string;
   index: number;
@@ -28,4 +30,5 @@ export interface TenuukiSpinViewerOptions {
   easingScope?: 'single' | 'full'; // single: per 360deg cycle, full: entire spin duration.
   onFrameChange?: (payload: TenuukiSpinViewerFrameChangePayload) => void;
   replacementToken?: string; // default: 'frame'
+  animationAdapter?: TenuukiSpinAnimationAdapter;
 }
