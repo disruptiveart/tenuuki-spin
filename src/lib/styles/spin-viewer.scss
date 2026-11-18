@@ -1,4 +1,4 @@
-.tenuuki-spin-context-menu.tenuuki-spin-context-menu {
+.tenuuki-spin-context-menu {
     all: initial;
     position: absolute;
     z-index: 2147483647;
@@ -104,14 +104,18 @@
     pointer-events: none;
     text-shadow: 0 1px 3px rgb(0 0 0 / 65%);
     transform: translateY(-50%);
+    opacity: 0;
+    animation: tenuuki-spin-hint-fade-in 600ms ease-out forwards;
   }
 
   .left-hint-arrow {
     left: 1rem;
+    animation-delay: 300ms;
   }
 
   .right-hint-arrow {
     right: 1rem;
+    animation-delay: 450ms;
   }
 
   .left-spin-arrow,
@@ -150,8 +154,25 @@
   }
 }
 
+@keyframes tenuuki-spin-hint-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tenuuki-spin-viewer .tenuuki-spin-loading-indicator {
+  .tenuuki-spin-viewer .tenuuki-spin-loading-indicator,
+  .tenuuki-spin-viewer .left-hint-arrow,
+  .tenuuki-spin-viewer .right-hint-arrow {
     animation: none;
+  }
+
+  .tenuuki-spin-viewer .left-hint-arrow,
+  .tenuuki-spin-viewer .right-hint-arrow {
+    opacity: 1;
   }
 }
