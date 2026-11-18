@@ -52,14 +52,6 @@ const VELOCITY_SAMPLES = 2
 
 // ----- Utilities -----
 const normalizeFrameIndex = (idx: number, total: number) => ((idx % total) + total) % total
-const getShortestFrameDelta = (from: number, to: number, total: number) => {
-  const direct = to - from
-  const plusWrap = direct + total
-  const minusWrap = direct - total
-  if (Math.abs(plusWrap) < Math.abs(direct) && Math.abs(plusWrap) <= Math.abs(minusWrap)) return plusWrap
-  if (Math.abs(minusWrap) < Math.abs(direct) && Math.abs(minusWrap) < Math.abs(plusWrap)) return minusWrap
-  return direct
-}
 const getDirectionStep = (direction: 1 | -1 | undefined) => direction === -1 ? 1 : -1
 const getSpinDirection = () => getDirectionStep(options?.direction)
 const getInitialSpinDirection = () => getDirectionStep(options?.initialSpinDirection ?? options?.direction)
@@ -426,31 +418,17 @@ const startMomentum = () => {
   const total = options.images.length
   if (total === 0 || Math.abs(velocity) < 0.1) return
 
-  let physicsFrameFloat = currentFrameFloat
-  let renderFrameFloat = currentFrameFloat
   let lastTime = performance.now()
   const step = (time: number) => {
-    const rawDt = (time - lastTime) / 1000
-    const dt = Math.min(1 / 30, Math.max(1 / 240, rawDt || 1 / 60))
+    const dt = (time - lastTime) / 1000
     lastTime = time
 
-    physicsFrameFloat = normalizeFrameIndex(physicsFrameFloat + velocity * dt, total)
-    const follow = 1 - Math.exp(-dt * 28)
-    const frameDelta = getShortestFrameDelta(renderFrameFloat, physicsFrameFloat, total)
-    renderFrameFloat = normalizeFrameIndex(renderFrameFloat + frameDelta * follow, total)
-
-    currentFrameFloat = renderFrameFloat
+    currentFrameFloat = normalizeFrameIndex(currentFrameFloat + velocity * dt, total)
     currentFrame = Math.floor(currentFrameFloat)
     velocity *= Math.pow(MOMENTUM_FRICTION, dt * 60)
-
-    if (Math.abs(velocity) >= 0.01) {
-      momentumId = requestAnimationFrame(step)
-      return
-    }
-
-    currentFrameFloat = physicsFrameFloat
-    currentFrame = Math.floor(currentFrameFloat)
-    momentumId = undefined
+    momentumId = Math.abs(velocity) >= 0.01
+      ? requestAnimationFrame(step)
+      : undefined
   }
   momentumId = requestAnimationFrame(step)
 }
