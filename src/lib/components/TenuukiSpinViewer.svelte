@@ -24,6 +24,9 @@ let containerElement: HTMLDivElement
 let hostElement: HTMLElement | null = null
 let stopAnimation: (() => void) | undefined
 let lastFrameChangeKey = ''
+let contextMenuVisible = false
+let contextMenuX = 0
+let contextMenuY = 0
 
 type SpinRun = object
 let activeSpin: SpinRun | undefined
@@ -188,9 +191,30 @@ export function goTo(i: number) {
   currentFrameFloat = targetFrame
 }
 
+const getArrowMarkup = (value: string | HTMLElement | undefined, fallback: string) => {
+  if (typeof value === 'string') return value || fallback
+  return value?.outerHTML || fallback
+}
+
 const handleArrowClick = (event: MouseEvent, delta: number) => {
   event.stopPropagation()
   goTo(Math.floor(currentFrameFloat) + delta)
+}
+
+const handleContextMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  const bounds = containerElement.getBoundingClientRect()
+  contextMenuX = Math.min(event.clientX - bounds.left, Math.max(0, bounds.width - 150))
+  contextMenuY = Math.min(event.clientY - bounds.top, Math.max(0, bounds.height - 40))
+  contextMenuVisible = true
+  window.addEventListener('pointerdown', closeContextMenu, { once: true })
+  window.addEventListener('blur', closeContextMenu, { once: true })
+}
+
+const closeContextMenu = () => {
+  contextMenuVisible = false
+  window.removeEventListener('pointerdown', closeContextMenu)
+  window.removeEventListener('blur', closeContextMenu)
 }
 
 /**
@@ -520,6 +544,11 @@ onMount(() => {
     : 0
 
   options.axis = host.getAttribute('data-axis') === 'y' ? 'y' : 'x'
+  options.arrowUp = host.getAttribute('data-arrow-up') ?? options.arrowUp ?? '↑'
+  options.arrowDown = host.getAttribute('data-arrow-down') ?? options.arrowDown ?? '↓'
+  options.arrowLeft = host.getAttribute('data-arrow-left') ?? options.arrowLeft ?? '←'
+  options.arrowRight = host.getAttribute('data-arrow-right') ?? options.arrowRight ?? '→'
+  
   options.direction = host.getAttribute('data-direction') === '-1' ? -1 : 1
   const initialSpinDirectionAttribute = host.getAttribute('data-initial-spin-direction')
   options.initialSpinDirection = initialSpinDirectionAttribute === '-1'
@@ -547,6 +576,7 @@ onMount(() => {
   currentFrameFloat = currentFrame
   preloadImagesProgressive()
   return () => {
+    closeContextMenu()
     preloadCancelled = true
     for (const img of preloadedImages) img.src = ''
     hostElement = null
@@ -566,7 +596,12 @@ $: {
 }
 </script>
 
-<div class="tenuuki-spin-viewer" bind:this={containerElement}>
+<div
+  class="tenuuki-spin-viewer"
+  bind:this={containerElement}
+  on:contextmenu={handleContextMenu}
+  role="presentation"
+>
   {#if currentSrc}
     <img
       bind:this={imgElement}
@@ -581,12 +616,14 @@ $: {
       on:pointerdown={handlePointerDown}
     />
     {#if options.showRotationHints}
-      <span class="left-hint-arrow" aria-hidden="true">
-        {options.axis === 'y' ? '↑' : '←'}
-      </span>
-      <span class="right-hint-arrow" aria-hidden="true">
-        {options.axis === 'y' ? '↓' : '→'}
-      </span>
+      <div class="rotation-hints">
+        <span class="left-hint-arrow" aria-hidden="true">
+          {@html getArrowMarkup(options.axis === 'y' ? options.arrowUp : options.arrowLeft, options.axis === 'y' ? '↑' : '←')}
+        </span>
+        <span class="right-hint-arrow" aria-hidden="true">
+          {@html getArrowMarkup(options.axis === 'y' ? options.arrowDown : options.arrowRight, options.axis === 'y' ? '↓' : '→')}
+        </span>
+      </div>
     {/if}
     {#if options.showArrows}
       <button
@@ -594,16 +631,27 @@ $: {
         type="button"
         aria-label={options.axis === 'y' ? 'Spin up' : 'Spin left'}
         on:click={(event) => handleArrowClick(event, -1)}
-      >{options.axis === 'y' ? '↑' : '←'}</button>
+      >{@html getArrowMarkup(options.axis === 'y' ? options.arrowUp : options.arrowLeft, options.axis === 'y' ? '↑' : '←')}</button>
       <button
         class="right-spin-arrow"
         type="button"
         aria-label={options.axis === 'y' ? 'Spin down' : 'Spin right'}
         on:click={(event) => handleArrowClick(event, 1)}
-      >{options.axis === 'y' ? '↓' : '→'}</button>
+      >{@html getArrowMarkup(options.axis === 'y' ? options.arrowDown : options.arrowRight, options.axis === 'y' ? '↓' : '→')}</button>
     {/if}
   {:else}
     <p>Loading...</p>
+  {/if}
+  {#if contextMenuVisible}
+    <div
+      class="tenuuki-spin-context-menu"
+      style="left: {contextMenuX}px; top: {contextMenuY}px;"
+      role="menu"
+      tabindex="-1"
+      on:pointerdown|stopPropagation
+    >
+      <span role="menuitem">version: {__TENUUKI_SPIN_VERSION__}</span>
+    </div>
   {/if}
   {#if isLoading}
     <div

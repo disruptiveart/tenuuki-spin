@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import packageJson from './package.json' with { type: 'json' }
 
 const isGithubDeploy = process.env.GITHUB_PAGES === 'true'
 const isLibBuild = process.env.BUILD_LIB === 'true'
 
 export default defineConfig({
+  define: {
+    __TENUUKI_SPIN_VERSION__: JSON.stringify(packageJson.version)
+  },
   plugins: [svelte()],
   base: isGithubDeploy ? '/tenuuki-spin/' : '/',
   build: isLibBuild

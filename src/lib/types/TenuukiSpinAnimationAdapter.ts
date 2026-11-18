@@ -142,8 +142,6 @@ const EASINGS_NET_CURVES: Record<string, (t: number) => number> = {
   }
 }
 
-const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
-
 const getNormalizedCurveName = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
 
 const getRotationCurveFor = (value: string) => {
@@ -154,20 +152,14 @@ const getRotationCurveFor = (value: string) => {
   return EASINGS_NET_CURVES[getNormalizedCurveName(rawCurve)] ?? ((t: number) => t)
 }
 
-const getEasedSteps = (linearSteps: number, request: TenuukiSpinAnimationRequest) => {
-  const curve = getRotationCurveFor(request.easing)
+const getCurvedStepDelay = (completedSteps: number, request: TenuukiSpinAnimationRequest) => {
   const cycleLength = Math.max(1, request.cycleLength)
-  const completeCycles = Math.floor(linearSteps / cycleLength)
-  const progress = (linearSteps - completeCycles * cycleLength) / cycleLength
-  return completeCycles * cycleLength + clamp01(curve(clamp01(progress))) * cycleLength
-}
-
-const getMaxStepDelta = (easing: string, totalFrames: number) => {
-  const normalized = getNormalizedCurveName(easing)
-  const baseCap = Math.max(1, Math.ceil(totalFrames / 24))
-  if (normalized.includes('bounce')) return Math.min(2, baseCap)
-  if (normalized.includes('elastic')) return Math.min(3, Math.max(2, baseCap))
-  return Math.max(4, baseCap)
+  const averageProgress = 1 / cycleLength
+  const position = completedSteps % cycleLength
+  const curve = getRotationCurveFor(request.easing)
+  const curvedDelta = Math.max(0.0001, curve((position + 1) / cycleLength) - curve(position / cycleLength))
+  const naturalDelay = request.frameIntervalMs * (averageProgress / curvedDelta)
+  return Math.max(0.5, Math.min(request.frameIntervalMs * 1.75, Math.max(request.frameIntervalMs * 0.55, naturalDelay)))
 }
 
 export const defaultTenuukiSpinAnimationAdapter: TenuukiSpinAnimationAdapter = {
@@ -175,30 +167,35 @@ export const defaultTenuukiSpinAnimationAdapter: TenuukiSpinAnimationAdapter = {
     let frameId: number | undefined
     let running = true
     let appliedSteps = 0
-    const startedAt = performance.now()
-    const isInfinite = !Number.isFinite(request.totalSteps)
-    const maxStepDelta = getMaxStepDelta(request.easing, request.totalFrames)
+    let nextStepTime = performance.now()
+    let lastDelay = getCurvedStepDelay(0, request)
 
     const tick = (time: number) => {
       if (!running) return
-      const linearSteps = Math.max(0, time - startedAt) / request.frameIntervalMs
-      const finiteLinearSteps = isInfinite ? linearSteps : Math.min(request.totalSteps, linearSteps)
-      const targetSteps = Math.floor(isInfinite
-        ? getEasedSteps(finiteLinearSteps, request)
-        : request.cycleLength >= request.totalSteps
-          ? clamp01(getRotationCurveFor(request.easing)(clamp01(finiteLinearSteps / request.totalSteps))) * request.totalSteps
-          : Math.min(request.totalSteps, getEasedSteps(finiteLinearSteps, request)))
-      const stepDelta = targetSteps - appliedSteps
-      if (stepDelta > 0) {
-        const appliedDelta = Math.min(stepDelta, maxStepDelta)
-        request.onUpdate(appliedDelta)
-        appliedSteps += appliedDelta
+
+      let appliedThisTick = 0
+      while (
+        running &&
+        time >= nextStepTime &&
+        appliedSteps < request.totalSteps &&
+        appliedThisTick < 120
+      ) {
+        request.onUpdate(1)
+        appliedSteps++
+        appliedThisTick++
+        if (appliedSteps >= request.totalSteps) break
+
+        const nextDelay = getCurvedStepDelay(appliedSteps, request)
+        lastDelay = lastDelay * 0.6 + nextDelay * 0.4
+        nextStepTime += lastDelay
       }
-      if (!isInfinite && appliedSteps >= request.totalSteps) {
+
+      if (Number.isFinite(request.totalSteps) && appliedSteps >= request.totalSteps) {
         running = false
         request.onComplete?.()
         return
       }
+
       frameId = requestAnimationFrame(tick)
     }
 

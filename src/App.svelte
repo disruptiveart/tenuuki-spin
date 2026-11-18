@@ -30,6 +30,9 @@
       easingScope="single"
       width={300}
       height={300}
+      showRotationHints={true}
+      arrowUp={`<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="red" /></svg>`}
+      arrowDown={`<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="blue" /></svg>`}
     />
 
     <DemoSpinner
@@ -51,6 +54,9 @@
       easingScope="single"
       width={300}
       height={300}
+      showRotationHints={true}
+      arrowLeft={`<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="yellow" /></svg>`}
+      arrowRight={`<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="green" /></svg>`}
     />
   </div>
 </main>

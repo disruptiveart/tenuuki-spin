@@ -4,6 +4,21 @@
   height: 100%;
   overflow: hidden;
 
+  .tenuuki-spin-context-menu {
+    position: absolute;
+    z-index: 3;
+    min-width: 8.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgb(255 255 255 / 18%);
+    border-radius: 0.375rem;
+    background: rgb(24 24 27 / 96%);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 35%);
+    color: white;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    user-select: none;
+  }
+
   .tenuuki-spin-loading {
     position: absolute;
     right: 0.75rem;
@@ -41,6 +56,17 @@
     -webkit-user-drag: none;    /* disable native drag */
     user-drag: none;
     -webkit-touch-callout: none;
+  }
+
+  .left-hint-arrow svg,
+  .right-hint-arrow svg,
+  .left-spin-arrow svg,
+  .right-spin-arrow svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    overflow: visible;
+    fill: currentColor;
   }
 
   .left-hint-arrow,

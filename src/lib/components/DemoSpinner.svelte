@@ -32,6 +32,10 @@
   export let draggable = true
   export let showArrows = false
   export let showRotationHints = false
+  export let arrowUp = '↑'
+  export let arrowDown = '↓'
+  export let arrowLeft = '←'
+  export let arrowRight = '→'
   export let initialSpin = true
   export let initialFrame = 1
   export let spinOffset = 0
@@ -115,6 +119,10 @@
       data-speed-multiplier={String(speedMultiplier)}
       data-easing={easing}
       data-easing-scope={easingScope}
+      data-arrow-up={arrowUp}
+      data-arrow-down={arrowDown}
+      data-arrow-left={arrowLeft}
+      data-arrow-right={arrowRight}
       on:framechange={(event: CustomEvent<FrameChangePayload>) => handleFrameChange(event.detail)}
     ></tenuuki-spin-viewer>
   {/key}

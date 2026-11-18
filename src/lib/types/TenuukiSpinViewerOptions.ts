@@ -11,6 +11,10 @@ export interface TenuukiSpinViewerFrameChangePayload {
 export interface TenuukiSpinViewerOptions {
   images: ReadonlyArray<string>;
   axis?: 'x' | 'y'; // default: 'x'
+  arrowUp?: string | HTMLElement; // text, SVG, or HTML; default: '↑'
+  arrowDown?: string | HTMLElement; // text, SVG, or HTML; default: '↓'
+  arrowLeft?: string | HTMLElement; // text, SVG, or HTML; default: '←'
+  arrowRight?: string | HTMLElement; // text, SVG, or HTML; default: '→'
   direction?: 1 | -1; // default: 1
   initialSpin?: boolean;
   initialSpinDirection?: 1 | -1; // defaults to direction when omitted.
