@@ -459,13 +459,13 @@ const processDragFrame = () => {
   const delta = (latestPointerCoord - dragStartCoord) * getSpinDirection()
   currentFrameFloat = normalizeFrameIndex(dragStartFrame + delta / DRAG_SENSITIVITY, total)
   currentFrame = Math.floor(currentFrameFloat)
-  lastDragPositions.push({ coord: latestPointerCoord, time: performance.now() })
-  if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
 }
 
 const handlePointerMove = (e: PointerEvent) => {
   if (!isDragging) return
   latestPointerCoord = getPointerCoord(e)
+  lastDragPositions.push({ coord: latestPointerCoord, time: performance.now() })
+  if (lastDragPositions.length > VELOCITY_SAMPLES) lastDragPositions.shift()
   if (dragRafId === undefined) {
     dragRafId = requestAnimationFrame(processDragFrame)
   }
@@ -487,9 +487,10 @@ const handlePointerUp = (e: PointerEvent) => {
   if (lastDragPositions.length >= 2) {
     const first = lastDragPositions[0]
     const last = lastDragPositions[lastDragPositions.length - 1]
+    const releasedAt = performance.now()
     const dt = (last.time - first.time) / 1000
     const dCoord = last.coord - first.coord
-    if (dt > 0) {
+    if (dt > 0 && releasedAt - last.time <= 100) {
       velocity = (dCoord / DRAG_SENSITIVITY / dt) * getSpinDirection()
       if (Math.abs(velocity) > 0.1) startMomentum()
     }
